@@ -9,8 +9,13 @@ macOS users should use the official cask: `brew install --cask espanso`.
 
 ```bash
 brew tap nnutter/tap
-brew install espanso                 # Wayland (default)
-brew install espanso --with-x11      # X11 instead of Wayland
+brew trust nnutter/tap/espanso
+
+# For Wayland (default)
+brew install nnutter/tap/espanso
+
+# Alternatively, for X11
+brew install nnutter/tap/espanso --with-x11
 ```
 
 ### After install
