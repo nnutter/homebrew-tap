@@ -2,6 +2,24 @@
 
 Personal Homebrew tap.
 
+## Install git-wt
+
+`git-wt` manages Git worktrees using a consistent naming convention.
+
+```bash
+brew tap nnutter/tap
+brew install nnutter/tap/git-wt
+```
+
+Optional zsh wrapper (`wt`):
+
+```bash
+git-wt generate zsh
+# or: git-wt generate zsh --name wt --out $XDG_DATA_HOME/zsh/site-functions --force
+```
+
+Ensure the output directory is on `fpath`, then restart zsh or run `compinit`.
+
 ## Install Espanso (Linux)
 
 Espanso is a cross-platform text expander. This formula builds from source for Linux.
