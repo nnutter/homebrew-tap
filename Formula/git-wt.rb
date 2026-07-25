@@ -14,7 +14,8 @@ class GitWt < Formula
   depends_on "go" => :build
 
   def install
-    system "go", "build", *std_go_args(ldflags: "-s -w")
+    ldflags = "-s -w -X main.Version=#{version}"
+    system "go", "build", *std_go_args(ldflags:)
   end
 
   def caveats
@@ -28,6 +29,7 @@ class GitWt < Formula
   end
 
   test do
+    assert_match version.to_s, shell_output("#{bin}/git-wt --version")
     assert_match "Manage Git worktrees", shell_output("#{bin}/git-wt --help")
   end
 end
