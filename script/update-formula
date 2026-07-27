@@ -1,0 +1,150 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "digest"
+require "net/http"
+require "tempfile"
+require "timeout"
+require "uri"
+
+# Updates Homebrew formula source archives from GitHub tag release URLs.
+module FormulaReleaseUpdater
+  class FormulaUpdateError < StandardError; end
+
+  # Parses validated GitHub source archive URLs.
+  class GitHubTagArchive
+    PATTERN = %r{\Ahttps://github\.com/([^/]+)/([^/]+)/archive/refs/tags/([^/]+)\.tar\.gz\z}
+
+    attr_reader :url, :owner, :repository, :tag
+
+    def initialize(url)
+      matches = PATTERN.match(url)
+      raise FormulaUpdateError, "expected a GitHub tag archive URL" unless matches
+
+      @url = url
+      @owner, @repository, @tag = matches.captures
+    end
+
+    def repository_identifier
+      "#{owner}/#{repository}"
+    end
+  end
+
+  # Downloads source archives and returns content digests.
+  class ArchiveDownloader
+    MAX_REDIRECTS = 5
+
+    def sha256(url)
+      response = fetch(URI(url), MAX_REDIRECTS)
+      raise FormulaUpdateError, "download failed with HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+
+      Digest::SHA256.hexdigest(response.body)
+    end
+
+    private
+
+    def fetch(uri, remaining_redirects)
+      response = Net::HTTP.get_response(uri)
+      return response unless response.is_a?(Net::HTTPRedirection)
+
+      raise FormulaUpdateError, "too many redirects while downloading archive" if remaining_redirects.zero?
+
+      location = response["location"]
+      raise FormulaUpdateError, "archive redirect is missing its Location header" unless location
+
+      redirect_uri = URI.join(uri, location)
+      raise FormulaUpdateError, "archive redirect must use HTTPS" if redirect_uri.scheme != "https"
+
+      fetch(redirect_uri, remaining_redirects - 1)
+    rescue SocketError, SystemCallError, Timeout::Error, URI::InvalidURIError => e
+      raise FormulaUpdateError, "could not download archive: #{e.message}"
+    end
+  end
+
+  # Reads and atomically replaces stable source fields.
+  class FormulaFile
+    GITHUB_ARCHIVE_URL = %r{https://github\.com/([^/]+/[^/]+)/archive/refs/tags/[^"/]+\.tar\.gz}
+    URL_LINE = /^(\s*url )"[^"]+"$/
+    SHA256_LINE = /^(\s*sha256 )"[0-9a-f]{64}"$/
+
+    def initialize(path)
+      @path = Pathname(path)
+    end
+
+    def repository_identifier
+      match = contents.match(GITHUB_ARCHIVE_URL)
+      match && match[1]
+    end
+
+    def update(archive, sha256)
+      updated_contents = replace_single_line(contents, URL_LINE, archive.url)
+      updated_contents = replace_single_line(updated_contents, SHA256_LINE, sha256)
+      replace_contents(updated_contents)
+    end
+
+    private
+
+    attr_reader :path
+
+    def contents
+      path.read
+    end
+
+    def replace_single_line(contents, pattern, value)
+      matches = contents.scan(pattern)
+      raise FormulaUpdateError, "#{path} must contain exactly one matching line" if matches.size != 1
+
+      contents.sub(pattern, "\\1\"#{value}\"")
+    end
+
+    def replace_contents(contents)
+      Tempfile.create([path.basename.to_s, ".tmp"], path.dirname) do |temporary_file|
+        temporary_file.write(contents)
+        temporary_file.flush
+        File.chmod(path.stat.mode, temporary_file.path)
+        File.rename(temporary_file.path, path)
+      end
+    end
+  end
+
+  # Coordinates a matching formula's release update.
+  class FormulaUpdater
+    def initialize(formula_directory:, downloader: ArchiveDownloader.new)
+      @formula_directory = Pathname(formula_directory)
+      @downloader = downloader
+    end
+
+    def update(url)
+      archive = GitHubTagArchive.new(url)
+      formula = matching_formula(archive.repository_identifier)
+      formula.update(archive, downloader.sha256(archive.url))
+      formula
+    end
+
+    private
+
+    attr_reader :formula_directory, :downloader
+
+    def matching_formula(repository_identifier)
+      matches = formula_directory.glob("*.rb").filter_map do |path|
+        formula = FormulaFile.new(path)
+        formula if formula.repository_identifier == repository_identifier
+      end
+      return matches.first if matches.one?
+
+      raise FormulaUpdateError, "found #{matches.size} formulas for #{repository_identifier}"
+    end
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  begin
+    abort "usage: #{File.basename(__FILE__)} GITHUB_TAG_ARCHIVE_URL" unless ARGV.one?
+
+    FormulaReleaseUpdater::FormulaUpdater.new(
+      formula_directory: Pathname(__dir__).join("..", "Formula"),
+    ).update(ARGV.first)
+  rescue FormulaReleaseUpdater::FormulaUpdateError => e
+    abort "error: #{e.message}"
+  end
+end
