@@ -1,8 +1,8 @@
 class GitWt < Formula
   desc "Manage Git worktrees using a consistent naming convention"
   homepage "https://github.com/nnutter/git-wt"
-  url "https://github.com/nnutter/git-wt/archive/refs/tags/v0.5.tar.gz"
-  sha256 "6124312c56b53bfec5c4f36f6c497405f607d7d568dba692a0ff41d96686a7d5"
+  url "https://github.com/nnutter/git-wt/archive/refs/tags/v0.6.tar.gz"
+  sha256 "55c963b08e93595f741551aa87cdf17cb6c194ee051b9b654d8b4618c04840f0"
   license "MIT"
   head "https://github.com/nnutter/git-wt.git", branch: "main"
 
