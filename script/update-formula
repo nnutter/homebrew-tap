@@ -67,8 +67,14 @@ module FormulaReleaseUpdater
     URL_LINE = /^(\s*url )"[^"]+"$/
     SHA256_LINE = /^(\s*sha256 )"[0-9a-f]{64}"$/
 
+    attr_reader :path
+
     def initialize(path)
       @path = Pathname(path)
+    end
+
+    def package_name
+      path.basename(".rb").to_s
     end
 
     def repository_identifier
@@ -83,8 +89,6 @@ module FormulaReleaseUpdater
     end
 
     private
-
-    attr_reader :path
 
     def contents
       path.read
@@ -107,23 +111,49 @@ module FormulaReleaseUpdater
     end
   end
 
+  # Commits an updated formula file to the local git repository.
+  class FormulaCommitter
+    def commit(formula, version:)
+      message = "Updated #{formula.package_name} to #{version}"
+      path = formula.path.expand_path
+      working_directory = path.dirname.to_s
+
+      run("git", "-C", working_directory, "add", "--", path.to_s)
+      run("git", "-C", working_directory, "commit", "-m", message)
+    end
+
+    private
+
+    def run(*command)
+      return if system(*command)
+
+      raise FormulaUpdateError, "command failed: #{command.join(" ")}"
+    end
+  end
+
   # Coordinates a matching formula's release update.
   class FormulaUpdater
-    def initialize(formula_directory:, downloader: ArchiveDownloader.new)
+    def initialize(
+      formula_directory:,
+      downloader: ArchiveDownloader.new,
+      committer: FormulaCommitter.new
+    )
       @formula_directory = Pathname(formula_directory)
       @downloader = downloader
+      @committer = committer
     end
 
     def update(url)
       archive = GitHubTagArchive.new(url)
       formula = matching_formula(archive.repository_identifier)
       formula.update(archive, downloader.sha256(archive.url))
+      committer.commit(formula, version: archive.tag)
       formula
     end
 
     private
 
-    attr_reader :formula_directory, :downloader
+    attr_reader :formula_directory, :downloader, :committer
 
     def matching_formula(repository_identifier)
       matches = formula_directory.glob("*.rb").filter_map do |path|

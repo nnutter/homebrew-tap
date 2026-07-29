@@ -11,8 +11,10 @@ brew tap nnutter/tap
 ## Update a formula release
 
 Pass a GitHub tag archive URL to download the release, calculate its SHA-256,
-and update the corresponding formula:
+update the corresponding formula, and commit the change:
 
 ```bash
 mise run update -- https://github.com/nnutter/git-wt/archive/refs/tags/v0.5.tar.gz
 ```
+
+The commit message looks like `Updated git-wt to v0.5`.
