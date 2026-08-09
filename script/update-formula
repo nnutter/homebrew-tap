@@ -3,7 +3,8 @@
 
 require "digest"
 require "net/http"
-require "pathname"
+# Needed when run outside Homebrew (brew style already loads Pathname).
+require "pathname" # rubocop:disable Lint/RedundantRequireStatement
 require "tempfile"
 require "timeout"
 require "uri"
