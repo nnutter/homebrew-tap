@@ -3,6 +3,7 @@
 
 require "digest"
 require "net/http"
+require "pathname"
 require "tempfile"
 require "timeout"
 require "uri"

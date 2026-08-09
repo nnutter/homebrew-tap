@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "pathname"
 require "tmpdir"
 load File.expand_path("../script/update-formula", __dir__)
 
