@@ -12,21 +12,21 @@ class Roam < Formula
 
   def install
     bin.install "roam.sh" => "roam"
-  end
 
-  def caveats
-    <<~EOS
-      Bash completion:
-        complete -F _git roam
-
-      Zsh completion:
-        #compdef roam
-        compdef roam=git
+    (bash_completion/"roam").write <<~EOS
+      complete -F _git roam
+    EOS
+    (zsh_completion/"_roam").write <<~EOS
+      #compdef roam=git
+      _git "$@"
     EOS
   end
 
   test do
     # git-sh-setup prints usage and exits 129 on -h
     assert_match "roam setup", shell_output("#{bin}/roam setup -h", 129)
+
+    assert_match "complete -F _git roam", (bash_completion/"roam").read
+    assert_match "_git", (zsh_completion/"_roam").read
   end
 end
