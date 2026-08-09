@@ -2,6 +2,8 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+# Needed when run outside Homebrew (brew style already loads Pathname).
+require "pathname" # rubocop:disable Lint/RedundantRequireStatement
 require "tmpdir"
 load File.expand_path("../script/update-formula", __dir__)
 
