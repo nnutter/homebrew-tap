@@ -1,8 +1,8 @@
 class Roam < Formula
   desc "Manage dotfiles with a bare Git repository"
   homepage "https://github.com/nnutter/roam"
-  url "https://github.com/nnutter/roam/archive/refs/tags/v1.0.tar.gz"
-  sha256 "109dfb2becc770dd30487d551b693995edfc161904b3afb4bc634586d1950d9b"
+  url "https://github.com/nnutter/roam/archive/refs/tags/v1.1.tar.gz"
+  sha256 "37bebe2d9e7d58ad2f0134a2b686ad45a1e3df5c1242a6e80a9e6c673af08f5e"
   head "https://github.com/nnutter/roam.git", branch: "master"
 
   livecheck do
