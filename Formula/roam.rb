@@ -1,8 +1,8 @@
 class Roam < Formula
   desc "Manage dotfiles with a bare Git repository"
   homepage "https://github.com/nnutter/roam"
-  url "https://github.com/nnutter/roam/archive/refs/tags/v1.1.tar.gz"
-  sha256 "37bebe2d9e7d58ad2f0134a2b686ad45a1e3df5c1242a6e80a9e6c673af08f5e"
+  url "https://github.com/nnutter/roam/archive/refs/tags/v1.1.1.tar.gz"
+  sha256 "f53233ca4e4c32c522215e81c7e5cd8673c16ef81e2fa5e2b9fc6164f28a44f8"
   head "https://github.com/nnutter/roam.git", branch: "master"
 
   livecheck do
@@ -16,10 +16,7 @@ class Roam < Formula
     (bash_completion/"roam").write <<~EOS
       complete -F _git roam
     EOS
-    (zsh_completion/"_roam").write <<~EOS
-      #compdef roam=git
-      _git "$@"
-    EOS
+    zsh_completion.install "_roam"
   end
 
   test do
