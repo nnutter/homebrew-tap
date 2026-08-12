@@ -39,6 +39,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: nnutter
         run: |
+          formulae=()
           updated=()
 
           while IFS= read -r current_url; do
@@ -51,6 +52,9 @@ jobs:
             [[ "$current_url" == "$latest_url" ]] && continue
 
             script/update-formula "$latest_url"
+            formula_path="$(git show --format= --name-only HEAD -- 'Formula/*.rb')"
+            formula_name="${formula_path#Formula/}"
+            formulae+=("nnutter/tap/${formula_name%.rb}")
             updated+=("$repository → $latest_tag")
           done < <(
             grep -h -oE \
@@ -65,6 +69,7 @@ jobs:
           fi
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
+          (IFS=,; echo "formulae=${formulae[*]}" >> "$GITHUB_OUTPUT")
           {
             echo "### Formula upgrades"
             printf -- '- %s\n' "${updated[@]}"
@@ -72,11 +77,13 @@ jobs:
 
       - name: Test formula upgrades
         if: steps.upgrade.outputs.changed == 'true'
+        env:
+          TESTING_FORMULAE: ${{ steps.upgrade.outputs.formulae }}
         run: |
           brew test-bot --only-cleanup-before
           brew test-bot --only-setup
           brew test-bot --only-tap-syntax
-          brew test-bot --only-formulae
+          brew test-bot --only-formulae --testing-formulae="$TESTING_FORMULAE"
 
       - name: Push upgrade branch
         if: steps.upgrade.outputs.changed == 'true'
@@ -91,10 +98,26 @@ jobs:
           BRANCH_NAME: formula-upgrades/${{ github.run_id }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: nnutter
+          REPOSITORY: ${{ github.repository }}
         run: |
-          pull_request_url="$(gh pr create \
-            --base "$BASE_BRANCH" \
-            --head "$BRANCH_NAME" \
-            --title "Upgrade formulas" \
-            --body "Upgrade formulas for $OWNER repositories to their latest GitHub releases.")"
+          request_body="$(brew ruby -rjson -e '
+            base, head, owner = ARGV
+            puts JSON.generate(
+              base: base,
+              head: head,
+              title: "Upgrade formulas",
+              body: "Upgrade formulas for #{owner} repositories to their latest GitHub releases.",
+            )
+          ' -- "$BASE_BRANCH" "$BRANCH_NAME" "$OWNER")"
+          pull_request_url="$(
+            curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header "Content-Type: application/json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              --data "$request_body" \
+              "https://api.github.com/repos/$REPOSITORY/pulls" | \
+              brew ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("html_url")'
+          )"
           echo "Opened $pull_request_url" >> "$GITHUB_STEP_SUMMARY"
