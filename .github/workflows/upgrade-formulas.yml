@@ -1,0 +1,100 @@
+name: Upgrade formulas
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: upgrade-formulas
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  upgrade:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@df4b09108a1de9d6f995fe68f302b3f68bd6d2ef # 2026.07.20.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure upgrade branch
+        env:
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+          BRANCH_NAME: formula-upgrades/${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags origin "$BASE_BRANCH"
+          git switch --create "$BRANCH_NAME" "origin/$BASE_BRANCH"
+
+      - name: Upgrade formulas from the latest releases
+        id: upgrade
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: nnutter
+        run: |
+          updated=()
+
+          while IFS= read -r current_url; do
+            repository="${current_url#https://github.com/}"
+            repository="${repository%%/archive/refs/tags/*}"
+            [[ "$repository" == "$OWNER/"* ]] || continue
+
+            latest_tag="$(gh api "repos/$repository/releases/latest" --jq '.tag_name')"
+            latest_url="https://github.com/$repository/archive/refs/tags/$latest_tag.tar.gz"
+            [[ "$current_url" == "$latest_url" ]] && continue
+
+            script/update-formula "$latest_url"
+            updated+=("$repository → $latest_tag")
+          done < <(
+            grep -h -oE \
+              'https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+\.tar\.gz' \
+              Formula/*.rb | sort -u
+          )
+
+          if (( ${#updated[@]} == 0 )); then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No formula upgrades were found." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Formula upgrades"
+            printf -- '- %s\n' "${updated[@]}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Test formula upgrades
+        if: steps.upgrade.outputs.changed == 'true'
+        run: |
+          brew test-bot --only-cleanup-before
+          brew test-bot --only-setup
+          brew test-bot --only-tap-syntax
+          brew test-bot --only-formulae
+
+      - name: Push upgrade branch
+        if: steps.upgrade.outputs.changed == 'true'
+        env:
+          BRANCH_NAME: formula-upgrades/${{ github.run_id }}
+        run: git push origin "HEAD:refs/heads/$BRANCH_NAME"
+
+      - name: Open pull request
+        if: steps.upgrade.outputs.changed == 'true'
+        env:
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+          BRANCH_NAME: formula-upgrades/${{ github.run_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: nnutter
+        run: |
+          pull_request_url="$(gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH_NAME" \
+            --title "Upgrade formulas" \
+            --body "Upgrade formulas for $OWNER repositories to their latest GitHub releases.")"
+          echo "Opened $pull_request_url" >> "$GITHUB_STEP_SUMMARY"
