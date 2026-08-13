@@ -7,12 +7,12 @@ require "pathname" # rubocop:disable Lint/RedundantRequireStatement
 require "tmpdir"
 load File.expand_path("../script/update-formula", __dir__)
 
-# Tests formula updates using GitHub tag archive URLs.
+# Tests formula updates from a formula name and GitHub release tag.
 class UpdateFormulaTest < Minitest::Test
   ARCHIVE_URL = "https://github.com/nnutter/git-wt/archive/refs/tags/v0.5.tar.gz"
   SHA256 = "a" * 64
 
-  def test_updates_matching_formula_url_and_sha256
+  def test_updates_named_formula_url_and_sha256
     with_formula_directory do |formula_directory|
       write_formula(formula_directory, "git-wt", "nnutter/git-wt")
       committer = RecordingCommitter.new
@@ -22,20 +22,34 @@ class UpdateFormulaTest < Minitest::Test
         downloader:        FakeDownloader.new(SHA256),
         committer:         committer,
       )
-      updater.update(ARCHIVE_URL)
+      updater.update("git-wt", "v0.5")
 
       assert_equal expected_formula, File.read(formula_directory.join("git-wt.rb"))
       assert_equal [{ package: "git-wt", version: "v0.5" }], committer.commits
     end
   end
 
-  def test_rejects_non_github_tag_archive_urls
-    assert_raises(FormulaReleaseUpdater::FormulaUpdateError) do
-      FormulaReleaseUpdater::GitHubTagArchive.new("https://example.com/archive.tar.gz")
+  def test_builds_archive_url_from_formula_repository
+    with_formula_directory do |formula_directory|
+      write_formula(formula_directory, "espanso", "espanso/espanso")
+      committer = RecordingCommitter.new
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        committer:         committer,
+      )
+      updater.update("espanso", "v2.4.0")
+
+      assert_includes(
+        File.read(formula_directory.join("espanso.rb")),
+        'url "https://github.com/espanso/espanso/archive/refs/tags/v2.4.0.tar.gz"',
+      )
+      assert_equal [{ package: "espanso", version: "v2.4.0" }], committer.commits
     end
   end
 
-  def test_does_not_change_formula_when_no_repository_matches
+  def test_does_not_change_formula_when_name_is_unknown
     with_formula_directory do |formula_directory|
       formula_path = write_formula(formula_directory, "other", "nnutter/other")
       committer = RecordingCommitter.new
@@ -46,16 +60,39 @@ class UpdateFormulaTest < Minitest::Test
         committer:         committer,
       )
 
-      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update(ARCHIVE_URL) }
+      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update("git-wt", "v0.5") }
       assert_equal original_formula("nnutter/other"), File.read(formula_path)
       assert_empty committer.commits
     end
   end
 
-  def test_rejects_ambiguous_formula_matches
+  def test_rejects_formula_without_github_tag_archive
     with_formula_directory do |formula_directory|
-      write_formula(formula_directory, "first", "nnutter/git-wt")
-      write_formula(formula_directory, "second", "nnutter/git-wt")
+      formula_path = formula_directory.join("magnitude.rb")
+      formula_path.write(<<~FORMULA)
+        class Magnitude < Formula
+          url "https://registry.npmjs.org/@magnitudedev/cli/-/cli-0.0.1.tgz"
+          sha256 "#{"b" * 64}"
+        end
+      FORMULA
+      committer = RecordingCommitter.new
+      original_contents = formula_path.read
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        committer:         committer,
+      )
+
+      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update("magnitude", "v1.0") }
+      assert_equal original_contents, formula_path.read
+      assert_empty committer.commits
+    end
+  end
+
+  def test_rejects_invalid_release_tag
+    with_formula_directory do |formula_directory|
+      write_formula(formula_directory, "git-wt", "nnutter/git-wt")
 
       updater = FormulaReleaseUpdater::FormulaUpdater.new(
         formula_directory: formula_directory,
@@ -63,7 +100,7 @@ class UpdateFormulaTest < Minitest::Test
         committer:         RecordingCommitter.new,
       )
 
-      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update(ARCHIVE_URL) }
+      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update("git-wt", "v0.5/extra") }
     end
   end
 
@@ -79,7 +116,7 @@ class UpdateFormulaTest < Minitest::Test
         formula_directory: formula_directory,
         downloader:        FakeDownloader.new(SHA256),
       )
-      updater.update(ARCHIVE_URL)
+      updater.update("git-wt", "v0.5")
 
       log_message = git_output(repository_root, "log", "-1", "--pretty=%s")
       assert_equal "Updated git-wt to v0.5", log_message

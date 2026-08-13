@@ -42,7 +42,15 @@ jobs:
           formulae=()
           updated=()
 
-          while IFS= read -r current_url; do
+          for formula_path in Formula/*.rb; do
+            formula_name="$(basename "${formula_path%.rb}")"
+            current_url="$(
+              grep -oE \
+                'https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+\.tar\.gz' \
+                "$formula_path" || true
+            )"
+            [[ -n "$current_url" ]] || continue
+
             repository="${current_url#https://github.com/}"
             repository="${repository%%/archive/refs/tags/*}"
             [[ "$repository" == "$OWNER/"* ]] || continue
@@ -51,16 +59,10 @@ jobs:
             latest_url="https://github.com/$repository/archive/refs/tags/$latest_tag.tar.gz"
             [[ "$current_url" == "$latest_url" ]] && continue
 
-            script/update-formula "$latest_url"
-            formula_path="$(git show --format= --name-only HEAD -- 'Formula/*.rb')"
-            formula_name="${formula_path#Formula/}"
-            formulae+=("nnutter/tap/${formula_name%.rb}")
+            script/update-formula "$formula_name" "$latest_tag"
+            formulae+=("nnutter/tap/$formula_name")
             updated+=("$repository → $latest_tag")
-          done < <(
-            grep -h -oE \
-              'https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+\.tar\.gz' \
-              Formula/*.rb | sort -u
-          )
+          done
 
           if (( ${#updated[@]} == 0 )); then
             echo "changed=false" >> "$GITHUB_OUTPUT"

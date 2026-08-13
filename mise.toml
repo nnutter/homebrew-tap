@@ -14,5 +14,5 @@ description = "Run all checks"
 depends = ["test", "lint"]
 
 [tasks.update]
-description = "Update a formula from a GitHub tag archive URL"
+description = "Update a formula from a GitHub release tag"
 run = "script/update-formula"

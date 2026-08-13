@@ -9,26 +9,24 @@ require "tempfile"
 require "timeout"
 require "uri"
 
-# Updates Homebrew formula source archives from GitHub tag release URLs.
+# Updates a Homebrew formula from a GitHub release tag.
 module FormulaReleaseUpdater
   class FormulaUpdateError < StandardError; end
 
-  # Parses validated GitHub source archive URLs.
+  # Builds GitHub source archive URLs from a repository and tag.
   class GitHubTagArchive
-    PATTERN = %r{\Ahttps://github\.com/([^/]+)/([^/]+)/archive/refs/tags/([^/]+)\.tar\.gz\z}
+    REPOSITORY = %r{\A[^/]+/[^/]+\z}
 
-    attr_reader :url, :owner, :repository, :tag
+    attr_reader :url, :tag
 
-    def initialize(url)
-      matches = PATTERN.match(url)
-      raise FormulaUpdateError, "expected a GitHub tag archive URL" unless matches
+    def initialize(repository_identifier, tag)
+      unless REPOSITORY.match?(repository_identifier.to_s)
+        raise FormulaUpdateError, "expected a GitHub repository identifier"
+      end
+      raise FormulaUpdateError, "expected a release tag" if tag.to_s.empty? || tag.include?("/")
 
-      @url = url
-      @owner, @repository, @tag = matches.captures
-    end
-
-    def repository_identifier
-      "#{owner}/#{repository}"
+      @url = "https://github.com/#{repository_identifier}/archive/refs/tags/#{tag}.tar.gz"
+      @tag = tag
     end
   end
 
@@ -133,7 +131,7 @@ module FormulaReleaseUpdater
     end
   end
 
-  # Coordinates a matching formula's release update.
+  # Coordinates a named formula's release update.
   class FormulaUpdater
     def initialize(
       formula_directory:,
@@ -145,9 +143,9 @@ module FormulaReleaseUpdater
       @committer = committer
     end
 
-    def update(url)
-      archive = GitHubTagArchive.new(url)
-      formula = matching_formula(archive.repository_identifier)
+    def update(name, tag)
+      formula = formula_named(name)
+      archive = archive_for(formula, tag)
       formula.update(archive, downloader.sha256(archive.url))
       committer.commit(formula, version: archive.tag)
       formula
@@ -157,25 +155,31 @@ module FormulaReleaseUpdater
 
     attr_reader :formula_directory, :downloader, :committer
 
-    def matching_formula(repository_identifier)
-      matches = formula_directory.glob("*.rb").filter_map do |path|
-        formula = FormulaFile.new(path)
-        formula if formula.repository_identifier == repository_identifier
-      end
-      return matches.first if matches.one?
+    def formula_named(name)
+      raise FormulaUpdateError, "expected a formula name" unless /\A[\w-]+\z/.match?(name.to_s)
 
-      raise FormulaUpdateError, "found #{matches.size} formulas for #{repository_identifier}"
+      path = formula_directory.join("#{name}.rb")
+      raise FormulaUpdateError, "formula not found: #{name}" unless path.file?
+
+      FormulaFile.new(path)
+    end
+
+    def archive_for(formula, tag)
+      identifier = formula.repository_identifier
+      raise FormulaUpdateError, "#{formula.path} must use a GitHub tag archive URL" unless identifier
+
+      GitHubTagArchive.new(identifier, tag)
     end
   end
 end
 
 if $PROGRAM_NAME == __FILE__
   begin
-    abort "usage: #{File.basename(__FILE__)} GITHUB_TAG_ARCHIVE_URL" unless ARGV.one?
+    abort "usage: #{File.basename(__FILE__)} FORMULA TAG" if ARGV.size != 2
 
     FormulaReleaseUpdater::FormulaUpdater.new(
       formula_directory: Pathname(__dir__).join("..", "Formula"),
-    ).update(ARGV.first)
+    ).update(*ARGV)
   rescue FormulaReleaseUpdater::FormulaUpdateError => e
     abort "error: #{e.message}"
   end
