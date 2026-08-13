@@ -5,7 +5,7 @@ require "minitest/autorun"
 # Needed when run outside Homebrew (brew style already loads Pathname).
 require "pathname" # rubocop:disable Lint/RedundantRequireStatement
 require "tmpdir"
-load File.expand_path("../script/update-formula", __dir__)
+load File.expand_path("../bin/update-formula", __dir__)
 
 # Tests formula updates from a formula name and GitHub release tag.
 class UpdateFormulaTest < Minitest::Test

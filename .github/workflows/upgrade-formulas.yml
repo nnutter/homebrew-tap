@@ -59,7 +59,7 @@ jobs:
             latest_url="https://github.com/$repository/archive/refs/tags/$latest_tag.tar.gz"
             [[ "$current_url" == "$latest_url" ]] && continue
 
-            script/update-formula "$formula_name" "$latest_tag"
+            bin/update-formula "$formula_name" "$latest_tag"
             formulae+=("nnutter/tap/$formula_name")
             updated+=("$repository → $latest_tag")
           done

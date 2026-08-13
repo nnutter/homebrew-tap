@@ -81,7 +81,7 @@ You can also start the workflow and give a tag.
 
 1. The workflow creates an installation access token for this tap.
 2. The workflow checks out this tap.
-3. The workflow runs `script/update-formula FORMULA TAG`.
+3. The workflow runs `bin/update-formula FORMULA TAG`.
 4. The workflow pushes a branch and opens a pull request.
 
 The pull request title looks like `Updated git-wt to v0.5`.

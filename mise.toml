@@ -15,4 +15,4 @@ depends = ["test", "lint"]
 
 [tasks.update]
 description = "Update a formula from a GitHub release tag"
-run = "script/update-formula"
+run = "bin/update-formula"
