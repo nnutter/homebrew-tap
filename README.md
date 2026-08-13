@@ -18,3 +18,73 @@ mise run update -- git-wt v0.5
 ```
 
 The commit message looks like `Updated git-wt to v0.5`.
+
+## Open a pull request from an upstream repository
+
+An upstream repository can open a pull request on this tap.
+The repository can do this after it publishes a release.
+Copy `examples/update-homebrew-formula.yml` to `.github/workflows/update-homebrew-formula.yml` in the upstream repository.
+Set `FORMULA_NAME` to the formula file name in this tap.
+
+The default `GITHUB_TOKEN` cannot write to another repository.
+Use a GitHub App.
+GitHub recommends a GitHub App when a workflow needs another repository.
+
+### Create the GitHub App
+
+1. Open [GitHub Apps](https://github.com/settings/apps) for the account that owns this tap.
+2. Select **New GitHub App**.
+3. Give the app a name, for example `homebrew-tap-formula-updates`.
+4. Set **Homepage URL** to the tap URL: `https://github.com/nnutter/homebrew-tap`.
+5. Clear **Webhook** / **Active**.
+   This app does not receive webhook events.
+6. Under **Repository permissions**, set:
+   - **Contents**: Read and write
+   - **Pull requests**: Read and write
+   - **Metadata**: Read-only
+7. Under **Where can this GitHub App be installed?**, select **Only on this account**.
+8. Select **Create GitHub App**.
+9. Copy the **Client ID**.
+   The Client ID is not the App ID.
+10. Under **Private keys**, select **Generate a private key**.
+    Keep the downloaded `.pem` file.
+
+### Install the app on this tap
+
+1. Open the app settings.
+2. Select **Install App**.
+3. Install the app on the account that owns this tap.
+4. Select **Only select repositories**.
+5. Grant access to `homebrew-tap` only.
+
+### Store credentials in the upstream repository
+
+In the upstream repository, open **Settings** > **Secrets and variables** > **Actions**.
+
+1. Create a repository variable named `APP_CLIENT_ID`.
+   Paste the Client ID.
+2. Create a repository secret named `APP_PRIVATE_KEY`.
+   Paste the full contents of the `.pem` file.
+   Include the `BEGIN` and `END` lines.
+
+The example workflow reads those names.
+
+CAUTION: Store the private key only in repositories that you trust.
+The key can write to this tap.
+
+If this tap uses branch rules, allow the app to create `formula-updates/*` branches.
+
+### What the workflow does
+
+The workflow runs when the upstream repository publishes a release.
+You can also start the workflow and give a tag.
+
+1. The workflow creates an installation access token for this tap.
+2. The workflow checks out this tap.
+3. The workflow runs `script/update-formula FORMULA TAG`.
+4. The workflow pushes a branch and opens a pull request.
+
+The pull request title looks like `Updated git-wt to v0.5`.
+The tap `brew test-bot` workflow then tests the pull request.
+
+See [authenticated API requests with a GitHub App in a GitHub Actions workflow](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow).
