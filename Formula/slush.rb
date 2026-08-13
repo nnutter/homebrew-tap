@@ -1,8 +1,8 @@
 class Slush < Formula
   desc "SSH/ET/mosh wrapper that starts Lemonade and reverse-tunnels its port"
   homepage "https://github.com/nnutter/slush"
-  url "https://github.com/nnutter/slush/archive/refs/tags/v0.2.1.tar.gz"
-  sha256 "9ff3e10c476ce113d4beb09e771fbf2cbfbe6d6fedb6417435e472e20485bdc9"
+  url "https://github.com/nnutter/slush/archive/refs/tags/v0.2.2.tar.gz"
+  sha256 "4a10519af9f632a663f450b44152f3ebbe00f84b63d8f69b8e872db367ed953e"
   head "https://github.com/nnutter/slush.git", branch: "main"
 
   livecheck do
