@@ -17,6 +17,8 @@ class GitWt < Formula
     ldflags = "-s -w -X main.Version=#{version}"
     system "go", "build", *std_go_args(ldflags:)
 
+    generate_completions_from_executable(bin/"git-wt", shell_parameter_format: :cobra)
+
     zsh_completion.mkpath
     system bin/"git-wt", "generate", "zsh", "--out", zsh_completion
   end
@@ -35,5 +37,9 @@ class GitWt < Formula
     assert_match "Manage Git worktrees", shell_output("#{bin}/git-wt --help")
     assert_path_exists zsh_completion/"wt"
     assert_path_exists zsh_completion/"_wt"
+    assert_match "#compdef git-wt", (zsh_completion/"_git-wt").read
+    assert_match "bash completion V2 for git-wt", (bash_completion/"git-wt").read
+    assert_match "fish completion for git-wt", (fish_completion/"git-wt.fish").read
+    assert_match "powershell completion for git-wt", (pwsh_completion/"_git-wt.ps1").read
   end
 end
