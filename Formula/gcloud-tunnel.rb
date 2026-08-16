@@ -1,8 +1,8 @@
 class GcloudTunnel < Formula
   desc "Publish local ports to a Cloud Workstation"
   homepage "https://github.com/nnutter/gcloud-tunnel"
-  url "https://github.com/nnutter/gcloud-tunnel/archive/refs/tags/v0.2.1.tar.gz"
-  sha256 "90e8c629dc23f934d457913d45d694dbe201304ffac5d6c499c71c049efddcf5"
+  url "https://github.com/nnutter/gcloud-tunnel/archive/refs/tags/v0.2.2.tar.gz"
+  sha256 "ae432a0e4492fa4bbcb7e67ff074840ba6c421c1aa36c894e06262ac5134b5ef"
   license "MIT"
   head "https://github.com/nnutter/gcloud-tunnel.git", branch: "master"
 
