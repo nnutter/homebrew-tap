@@ -14,10 +14,10 @@ Give the formula name and the GitHub release tag.
 The script downloads the release, calculates its SHA-256, updates the formula, and commits the change.
 
 ```bash
-mise run update -- git-wt v0.5
+mise run update -- timber v0.5
 ```
 
-The commit message looks like `Updated git-wt to v0.5`.
+The commit message looks like `Updated timber to v0.5`.
 
 ## Open a pull request from an upstream repository
 
@@ -84,7 +84,7 @@ You can also start the workflow and give a tag.
 3. The workflow runs `bin/update-formula FORMULA TAG`.
 4. The workflow pushes a branch and opens a pull request.
 
-The pull request title looks like `Updated git-wt to v0.5`.
+The pull request title looks like `Updated timber to v0.5`.
 The tap `brew test-bot` workflow then tests the pull request.
 
 See [authenticated API requests with a GitHub App in a GitHub Actions workflow](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow).
