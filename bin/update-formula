@@ -19,13 +19,17 @@ module FormulaReleaseUpdater
 
     attr_reader :url, :tag
 
-    def initialize(repository_identifier, tag)
+    def initialize(repository_identifier, tag, api: false)
       unless REPOSITORY.match?(repository_identifier.to_s)
         raise FormulaUpdateError, "expected a GitHub repository identifier"
       end
       raise FormulaUpdateError, "expected a release tag" if tag.to_s.empty? || tag.include?("/")
 
-      @url = "https://github.com/#{repository_identifier}/archive/refs/tags/#{tag}.tar.gz"
+      @url = if api
+        "https://api.github.com/repos/#{repository_identifier}/tarball/#{tag}"
+      else
+        "https://github.com/#{repository_identifier}/archive/refs/tags/#{tag}.tar.gz"
+      end
       @tag = tag
     end
   end
@@ -33,6 +37,10 @@ module FormulaReleaseUpdater
   # Downloads source archives and returns content digests.
   class ArchiveDownloader
     MAX_REDIRECTS = 5
+
+    def initialize(github_token: ENV.fetch("HOMEBREW_GITHUB_API_TOKEN", nil))
+      @github_token = github_token
+    end
 
     def sha256(url)
       response = fetch(URI(url), MAX_REDIRECTS)
@@ -44,7 +52,9 @@ module FormulaReleaseUpdater
     private
 
     def fetch(uri, remaining_redirects)
-      response = Net::HTTP.get_response(uri)
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+        http.request(request_for(uri))
+      end
       return response unless response.is_a?(Net::HTTPRedirection)
 
       raise FormulaUpdateError, "too many redirects while downloading archive" if remaining_redirects.zero?
@@ -59,12 +69,21 @@ module FormulaReleaseUpdater
     rescue SocketError, SystemCallError, Timeout::Error, URI::InvalidURIError => e
       raise FormulaUpdateError, "could not download archive: #{e.message}"
     end
+
+    def request_for(uri)
+      request = Net::HTTP::Get.new(uri)
+      if !@github_token.to_s.empty? && %w[github.com api.github.com].include?(uri.host)
+        request["Authorization"] = "Bearer #{@github_token}"
+      end
+      request
+    end
   end
 
   # Reads and atomically replaces stable source fields.
   class FormulaFile
     GITHUB_ARCHIVE_URL = %r{https://github\.com/([^/]+/[^/]+)/archive/refs/tags/[^"/]+\.tar\.gz}
-    URL_LINE = /^(\s*url )"[^"]+"$/
+    GITHUB_API_TARBALL_URL = %r{https://api\.github\.com/repos/([^/]+/[^/]+)/tarball/[^"/]+}
+    URL_LINE = /^(\s*url )"[^"]+"/
     SHA256_LINE = /^(\s*sha256 )"[0-9a-f]{64}"$/
 
     attr_reader :path
@@ -78,8 +97,14 @@ module FormulaReleaseUpdater
     end
 
     def repository_identifier
-      match = contents.match(GITHUB_ARCHIVE_URL)
+      match = contents.match(GITHUB_ARCHIVE_URL) || contents.match(GITHUB_API_TARBALL_URL)
       match && match[1]
+    end
+
+    def authenticated_github_source?
+      contents.match?(GITHUB_API_TARBALL_URL) ||
+        contents.match?(/user:\s*"x-access-token:/) ||
+        contents.match?(/header:\s*"Authorization:/)
     end
 
     def update(archive, sha256)
@@ -168,7 +193,7 @@ module FormulaReleaseUpdater
       identifier = formula.repository_identifier
       raise FormulaUpdateError, "#{formula.path} must use a GitHub tag archive URL" unless identifier
 
-      GitHubTagArchive.new(identifier, tag)
+      GitHubTagArchive.new(identifier, tag, api: formula.authenticated_github_source?)
     end
   end
 end

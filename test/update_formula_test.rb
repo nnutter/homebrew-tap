@@ -29,6 +29,60 @@ class UpdateFormulaTest < Minitest::Test
     end
   end
 
+  def test_updates_authenticated_archive_url_and_preserves_user
+    authenticated_user = %Q(user: "x-access-token:\#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}")
+
+    with_formula_directory do |formula_directory|
+      formula_path = formula_directory.join("git-wt.rb")
+      formula_path.write(<<~FORMULA)
+        class GitWt < Formula
+          url "https://github.com/nnutter/git-wt/archive/refs/tags/v0.4.tar.gz",
+              #{authenticated_user}
+          sha256 "#{"b" * 64}"
+        end
+      FORMULA
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        committer:         RecordingCommitter.new,
+      )
+      updater.update("git-wt", "v0.5")
+
+      assert_includes formula_path.read,
+                      "url \"https://api.github.com/repos/nnutter/git-wt/tarball/v0.5\","
+      assert_includes formula_path.read, authenticated_user
+      assert_includes formula_path.read, "sha256 \"#{SHA256}\""
+    end
+  end
+
+  def test_authenticates_github_archive_downloads
+    request = FormulaReleaseUpdater::ArchiveDownloader.new(github_token: "secret").send(
+      :request_for,
+      URI(ARCHIVE_URL),
+    )
+
+    assert_equal "Bearer secret", request["Authorization"]
+  end
+
+  def test_authenticates_github_api_tarball_downloads
+    request = FormulaReleaseUpdater::ArchiveDownloader.new(github_token: "secret").send(
+      :request_for,
+      URI("https://api.github.com/repos/nnutter/git-wt/tarball/v0.5"),
+    )
+
+    assert_equal "Bearer secret", request["Authorization"]
+  end
+
+  def test_does_not_send_github_token_to_redirect_hosts
+    request = FormulaReleaseUpdater::ArchiveDownloader.new(github_token: "secret").send(
+      :request_for,
+      URI("https://codeload.github.com/nnutter/git-wt/tar.gz/refs/tags/v0.5"),
+    )
+
+    assert_nil request["Authorization"]
+  end
+
   def test_builds_archive_url_from_formula_repository
     with_formula_directory do |formula_directory|
       write_formula(formula_directory, "espanso", "espanso/espanso")
