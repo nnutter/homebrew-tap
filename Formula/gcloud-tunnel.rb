@@ -1,8 +1,7 @@
 class GcloudTunnel < Formula
   desc "Publish local ports to a Cloud Workstation"
   homepage "https://github.com/nnutter/gcloud-tunnel"
-  # GitHub App tokens cannot fetch github.com /archive/ URLs.
-  url "https://api.github.com/repos/nnutter/gcloud-tunnel/tarball/v0.2.3", # rubocop:disable FormulaAudit/Urls
+  url "https://api.github.com/repos/nnutter/gcloud-tunnel/tarball/v0.2.3",
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
   sha256 "27894d2ca74ccd5bff41d880112c4f361580c54ac883b128d8e468cdf90bbddc"
   license "MIT"

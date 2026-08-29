@@ -109,10 +109,9 @@ jobs:
         env:
           TESTING_FORMULAE: ${{ steps.upgrade.outputs.formulae }}
         run: |
-          brew test-bot --only-cleanup-before
-          brew test-bot --only-setup
-          brew test-bot --only-tap-syntax
-          brew test-bot --only-formulae --skip-online-checks --testing-formulae="$TESTING_FORMULAE"
+          IFS=',' read -r -a formulae <<< "$TESTING_FORMULAE"
+          brew install --build-from-source "${formulae[@]}"
+          brew test "${formulae[@]}"
 
       - name: Push upgrade branch
         if: steps.upgrade.outputs.changed == 'true'
