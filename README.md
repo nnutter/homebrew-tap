@@ -8,10 +8,25 @@ Personal Homebrew tap.
 brew tap nnutter/tap
 ```
 
+## Install a formula from a private repository
+
+The `gcloud-tunnel`, `slush`, and `timber` formulas download source from private GitHub repositories.
+Give Homebrew a GitHub token that has read access to the repository:
+
+```bash
+export HOMEBREW_GITHUB_API_TOKEN="$(gh auth token)"
+brew install nnutter/tap/timber
+```
+
+Tap workflows mint an installation token from the GitHub App below.
+Install the app on the private formula repositories and store `APP_CLIENT_ID`
+and `APP_PRIVATE_KEY` on this tap.
+
 ## Update a formula release
 
 Give the formula name and the GitHub release tag.
 The script downloads the release, calculates its SHA-256, updates the formula, and commits the change.
+For a private repository, set `HOMEBREW_GITHUB_API_TOKEN` as shown above first.
 
 ```bash
 mise run update -- timber v0.5
@@ -49,17 +64,22 @@ GitHub recommends a GitHub App when a workflow needs another repository.
 10. Under **Private keys**, select **Generate a private key**.
     Keep the downloaded `.pem` file.
 
-### Install the app on this tap
+### Install the app
 
 1. Open the app settings.
 2. Select **Install App**.
 3. Install the app on the account that owns this tap.
 4. Select **Only select repositories**.
-5. Grant access to `homebrew-tap` only.
+5. Grant access to `homebrew-tap` and to each private formula repository
+   (`gcloud-tunnel`, `slush`, `timber`, and any later private formulas).
 
-### Store credentials in the upstream repository
+Tap CI needs Contents access to those private repositories so it can download
+release archives. Upstream formula-update workflows need Contents and Pull
+requests access to this tap.
 
-In the upstream repository, open **Settings** > **Secrets and variables** > **Actions**.
+### Store credentials
+
+In this tap and in each upstream repository, open **Settings** > **Secrets and variables** > **Actions**.
 
 1. Create a repository variable named `APP_CLIENT_ID`.
    Paste the Client ID.
@@ -67,7 +87,7 @@ In the upstream repository, open **Settings** > **Secrets and variables** > **Ac
    Paste the full contents of the `.pem` file.
    Include the `BEGIN` and `END` lines.
 
-The example workflow reads those names.
+The tap workflows and the example upstream workflow read those names.
 
 CAUTION: Store the private key only in repositories that you trust.
 The key can write to this tap.

@@ -30,6 +30,22 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # The brew container cannot write GITHUB_OUTPUT until setup-homebrew
+      # fixes mount permissions, so mint the app token after that.
+      - name: Generate a token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+
+      - name: Authenticate private formula downloads
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+        run: echo "HOMEBREW_GITHUB_API_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
       - name: Cache Homebrew Bundler RubyGems
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -43,5 +59,7 @@ jobs:
 
       - run: brew test-bot --only-tap-syntax
 
-      - run: brew test-bot --only-formulae
+      # Private GitHub sources 404 under `brew audit --online` (`git ls-remote`
+      # and unauthenticated archive checks) even when authenticated fetch works.
+      - run: brew test-bot --only-formulae --skip-online-checks
         if: github.event_name == 'pull_request'

@@ -1,13 +1,15 @@
 class GcloudTunnel < Formula
   desc "Publish local ports to a Cloud Workstation"
   homepage "https://github.com/nnutter/gcloud-tunnel"
-  url "https://github.com/nnutter/gcloud-tunnel/archive/refs/tags/v0.2.3.tar.gz"
-  sha256 "c68b04f5cba9b247badddf65ba6473f217125611d29e21c0dee5b0493cd3f92c"
+  # GitHub App tokens cannot fetch github.com /archive/ URLs.
+  url "https://api.github.com/repos/nnutter/gcloud-tunnel/tarball/v0.2.3", # rubocop:disable FormulaAudit/Urls
+      user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
+  sha256 "27894d2ca74ccd5bff41d880112c4f361580c54ac883b128d8e468cdf90bbddc"
   license "MIT"
   head "https://github.com/nnutter/gcloud-tunnel.git", branch: "master"
 
   livecheck do
-    url :stable
+    url :homepage
     strategy :github_latest
   end
 

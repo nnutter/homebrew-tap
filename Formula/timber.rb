@@ -1,13 +1,15 @@
 class Timber < Formula
   desc "Manage Git worktrees using a consistent naming convention"
   homepage "https://github.com/nnutter/timber"
-  url "https://github.com/nnutter/timber/archive/refs/tags/v0.12.0.tar.gz"
-  sha256 "36d35a058fd4098f740dd21cec0f9630506a44df5566d17b80d9608b874ae889"
+  # GitHub App tokens cannot fetch github.com /archive/ URLs.
+  url "https://api.github.com/repos/nnutter/timber/tarball/v0.12.0", # rubocop:disable FormulaAudit/Urls
+      user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
+  sha256 "69e68548dcede2048330ecbfd4de4164465ad73733edbf69427d5302f7db65e1"
   license "MIT"
   head "https://github.com/nnutter/timber.git", branch: "main"
 
   livecheck do
-    url :stable
+    url :homepage
     strategy :github_latest
   end
 

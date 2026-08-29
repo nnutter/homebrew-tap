@@ -1,12 +1,14 @@
 class Slush < Formula
   desc "SSH/ET/mosh wrapper that starts Lemonade and reverse-tunnels its port"
   homepage "https://github.com/nnutter/slush"
-  url "https://github.com/nnutter/slush/archive/refs/tags/v0.2.4.tar.gz"
-  sha256 "3a455ada405edb745790e5a4d4e4015907d085a0995c54f89c849162b43cf139"
+  # GitHub App tokens cannot fetch github.com /archive/ URLs.
+  url "https://api.github.com/repos/nnutter/slush/tarball/v0.2.4", # rubocop:disable FormulaAudit/Urls
+      user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
+  sha256 "cacd74e6e957c171c3e6d022086be53954cc858e6b9377b068e0f2c16817f74f"
   head "https://github.com/nnutter/slush.git", branch: "main"
 
   livecheck do
-    url :stable
+    url :homepage
     strategy :github_latest
   end
 
