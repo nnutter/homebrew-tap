@@ -1,9 +1,9 @@
 class Timber < Formula
   desc "Manage Git worktrees using a consistent naming convention"
   homepage "https://github.com/nnutter/timber"
-  url "https://api.github.com/repos/nnutter/timber/tarball/v0.12.0",
+  url "https://api.github.com/repos/nnutter/timber/tarball/v0.13.2",
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
-  sha256 "69e68548dcede2048330ecbfd4de4164465ad73733edbf69427d5302f7db65e1"
+  sha256 "a448e21cdc374c1231c5b714c04089753fedc8e82ca7a45f0f1e55e48d0c7727"
   license "MIT"
   head "https://github.com/nnutter/timber.git", branch: "main"
 
