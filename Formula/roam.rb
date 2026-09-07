@@ -14,7 +14,7 @@ class Roam < Formula
   depends_on "go" => :build
 
   def install
-    ldflags = "-s -w"
+    ldflags = "-s -w -X main.Version=#{version}"
     system "go", "build", *std_go_args(ldflags:)
 
     zsh_completion.mkpath
