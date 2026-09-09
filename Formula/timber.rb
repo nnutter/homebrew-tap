@@ -14,7 +14,7 @@ class Timber < Formula
   depends_on "go" => :build
 
   def install
-    ldflags = "-s -w -X main.Version=#{version}"
+    ldflags = %W[-X main.version=#{version}]
     system "go", "build", *std_go_args(ldflags:)
 
     generate_completions_from_executable(bin/"timber", shell_parameter_format: :cobra)

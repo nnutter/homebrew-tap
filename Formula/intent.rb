@@ -9,7 +9,7 @@ class Intent < Formula
   depends_on "go" => :build
 
   def install
-    ldflags = %W[-X github.com/nnutter/intent/internal/cli.Version=#{version}]
+    ldflags = %W[-X main.version=#{version}]
     system "go", "build", *std_go_args(ldflags:, output: bin/"intent")
   end
 
