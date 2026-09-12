@@ -1,8 +1,8 @@
 class Intent < Formula
   desc "Refactor extractor"
   homepage "https://github.com/nnutter/intent"
-  url "https://github.com/nnutter/intent/archive/refs/tags/v0.1.1.tar.gz"
-  sha256 "945bcb8000d7b9e2c5d8cea1d43e45c5ce4504fa49f924156daecb97992ce670"
+  url "https://github.com/nnutter/intent/archive/refs/tags/v0.1.2.tar.gz"
+  sha256 "6c178c877cb73ebec89e4e3457f065a8cb6203e2ae6f8c2a796da7b4c37e936c"
   license "MIT"
   head "https://github.com/nnutter/intent.git", branch: "master"
 
