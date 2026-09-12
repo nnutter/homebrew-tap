@@ -15,7 +15,7 @@ class Intent < Formula
   end
 
   test do
-    #assert_match version.to_s, shell_output("#{bin}/intent --version")
+    assert_match version.to_s, shell_output("#{bin}/intent --version")
     assert_match "#compdef intent", (zsh_completion/"_intent").read
     assert_match "bash completion V2 for intent", (bash_completion/"intent").read
     assert_match "fish completion for intent", (fish_completion/"intent.fish").read
