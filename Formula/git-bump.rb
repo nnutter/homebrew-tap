@@ -1,8 +1,8 @@
 class GitBump < Formula
   desc "Bump tags"
   homepage "https://github.com/nnutter/git-bump"
-  url "https://github.com/nnutter/git-bump/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "b1cf551fedbdfc3613d13b6930a77d549c3e4c32d8569ee263c55ae2fd2f5d2c"
+  url "https://github.com/nnutter/git-bump/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "7ddf355352b7d6d4856d53caf844a9e4424bd94f1e59a4411cf759d98e0bd352"
   license "MIT"
   head "https://github.com/nnutter/git-bump.git", branch: "master"
 
