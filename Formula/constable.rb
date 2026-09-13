@@ -1,8 +1,8 @@
 class Constable < Formula
   desc "Personal static analysis tool for Go"
   homepage "https://github.com/nnutter/constable"
-  url "https://github.com/nnutter/constable/archive/refs/tags/v0.3.1.tar.gz"
-  sha256 "a41cb9392593ec30eb8ce4e7b0463a13c06850aa097deac5ccb7d9ea01870f98"
+  url "https://github.com/nnutter/constable/archive/refs/tags/v0.4.0.tar.gz"
+  sha256 "5d20e06f3719a1ef36a3cd1637bae79920b74c5f5b4cc104a6a251740c898a81"
   license "MIT"
   head "https://github.com/nnutter/constable.git", branch: "master"
 
