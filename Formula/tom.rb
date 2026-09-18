@@ -1,8 +1,8 @@
 class Tom < Formula
   desc "Generate a text map of Go source code structure"
   homepage "https://github.com/nnutter/tom"
-  url "https://github.com/nnutter/tom/archive/refs/tags/v0.1.1.tar.gz"
-  sha256 "ead0504b5270206bd84d320cbaefc1e930db755b6e30bd641325593a19a0e077"
+  url "https://github.com/nnutter/tom/archive/refs/tags/v0.1.2.tar.gz"
+  sha256 "8f5be04cde729531899b28aa6b9e374cba10deb7d28d08c409fc8bda66b6a17d"
   license "MIT"
   head "https://github.com/nnutter/tom.git", branch: "master"
 
