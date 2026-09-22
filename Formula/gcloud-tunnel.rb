@@ -5,7 +5,7 @@ class GcloudTunnel < Formula
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
   sha256 "27894d2ca74ccd5bff41d880112c4f361580c54ac883b128d8e468cdf90bbddc"
   license "MIT"
-  head "https://github.com/nnutter/gcloud-tunnel.git", branch: "master"
+  head "ssh://git@github.com/nnutter/gcloud-tunnel.git", branch: "master"
 
   livecheck do
     url :homepage
