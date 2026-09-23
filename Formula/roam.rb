@@ -16,13 +16,7 @@ class Roam < Formula
   def install
     ldflags = %W[-X main.version=#{version}]
     system "go", "build", *std_go_args(ldflags:)
-
-    zsh_completion.mkpath
-    system bin/"roam", "generate", "zsh", "--out", zsh_completion, "--force"
-
-    (bash_completion/"roam").write <<~EOS
-      complete -F _git roam
-    EOS
+    generate_completions_from_executable(bin/"roam", shell_parameter_format: :cobra, shells: [:zsh])
   end
 
   test do
@@ -31,6 +25,5 @@ class Roam < Formula
 
     assert_match "#compdef roam", (zsh_completion/"_roam").read
     assert_match "_git", (zsh_completion/"_roam").read
-    assert_match "complete -F _git roam", (bash_completion/"roam").read
   end
 end
