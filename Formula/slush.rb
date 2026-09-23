@@ -4,7 +4,7 @@ class Slush < Formula
   url "https://api.github.com/repos/nnutter/slush/tarball/v0.2.4",
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
   sha256 "cacd74e6e957c171c3e6d022086be53954cc858e6b9377b068e0f2c16817f74f"
-  head "https://github.com/nnutter/slush.git", branch: "main"
+  head "ssh://git@github.com/nnutter/slush.git", branch: "main"
 
   livecheck do
     url :homepage
