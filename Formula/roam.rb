@@ -20,9 +20,7 @@ class Roam < Formula
   end
 
   test do
-    assert_match "Use roam like git", shell_output("#{bin}/roam --help")
-    assert_match "Initialize the dotfiles repository", shell_output("#{bin}/roam setup -h")
-
+    assert_match version.to_s, shell_output("#{bin}/roam --version")
     assert_match "#compdef roam", (zsh_completion/"_roam").read
     assert_match "_git", (zsh_completion/"_roam").read
   end
