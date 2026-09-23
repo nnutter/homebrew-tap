@@ -18,7 +18,7 @@ class Roam < Formula
     system "go", "build", *std_go_args(ldflags:)
 
     zsh_completion.mkpath
-    system bin/"roam", "generate", "zsh", "--out", zsh_completion
+    system bin/"roam", "generate", "zsh", "--out", zsh_completion, "--force"
 
     (bash_completion/"roam").write <<~EOS
       complete -F _git roam
