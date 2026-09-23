@@ -1,8 +1,8 @@
 class Roam < Formula
   desc "Manage dotfiles with a Git repository"
   homepage "https://github.com/nnutter/roam"
-  url "https://github.com/nnutter/roam/archive/refs/tags/v2.0.0.tar.gz"
-  sha256 "36ec3683be1da3debfa97ddecc83ba1666d7d56712ba720174b9ba0b4dfe9dec"
+  url "https://github.com/nnutter/roam/archive/refs/tags/v2.1.1.tar.gz"
+  sha256 "1e5c577f5f9791bf5e87970d0a4bf5ae489c0a33a7cd929b66698312cfa3a2f8"
   license "MIT"
   head "https://github.com/nnutter/roam.git", branch: "master"
 
