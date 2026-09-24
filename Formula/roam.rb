@@ -23,6 +23,6 @@ class Roam < Formula
     assert_match version.to_s, shell_output("#{bin}/roam --version")
     assert_match "#compdef roam", (zsh_completion/"_roam").read
     assert_match "_git", (zsh_completion/"_roam").read
-    assert_match "bash completion V2 for roam", (bash_completion/"roam").read
+    assert_match "complete -F _git roam", (bash_completion/"roam").read
   end
 end
