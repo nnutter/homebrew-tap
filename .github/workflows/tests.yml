@@ -62,5 +62,23 @@ jobs:
             exit 0
           fi
 
-          brew install --build-from-source "${formulae[@]}"
+          stable=()
+          head_only=()
+          for formula in "${formulae[@]}"; do
+            if [[ "$(
+              brew info --json=v2 "$formula" |
+                brew ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("formulae").fetch(0).fetch("versions").fetch("stable").nil?'
+            )" == "true" ]]; then
+              head_only+=("$formula")
+            else
+              stable+=("$formula")
+            fi
+          done
+
+          if ((${#stable[@]} > 0)); then
+            brew install --build-from-source "${stable[@]}"
+          fi
+          if ((${#head_only[@]} > 0)); then
+            brew install --HEAD --build-from-source "${head_only[@]}"
+          fi
           brew test "${formulae[@]}"
