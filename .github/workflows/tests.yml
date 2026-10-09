@@ -43,7 +43,7 @@ jobs:
           TOKEN: ${{ steps.app-token.outputs.token }}
         run: echo "HOMEBREW_GITHUB_API_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
-      - name: Install and test changed formulae
+      - name: Install and test changed formulae and casks
         if: github.event_name == 'pull_request'
         shell: bash
         env:
@@ -57,49 +57,68 @@ jobs:
             formulae+=("nnutter/tap/$(basename "${file%.rb}")")
           done < <(git -C "$tap" diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- Formula/)
 
-          if ((${#formulae[@]} == 0)); then
-            echo "No formula changes."
+          casks=()
+          while IFS= read -r file; do
+            casks+=("nnutter/tap/$(basename "${file%.rb}")")
+          done < <(git -C "$tap" diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- Casks/)
+
+          if ((${#formulae[@]} == 0 && ${#casks[@]} == 0)); then
+            echo "No formula or cask changes."
             exit 0
           fi
 
-          placeholder='0000000000000000000000000000000000000000000000000000000000000000'
-          testable=()
-          skipped=()
-          for formula in "${formulae[@]}"; do
-            if grep -q "sha256 \"${placeholder}\"" "${tap}/Formula/${formula##*/}.rb"; then
-              skipped+=("$formula")
-            else
-              testable+=("$formula")
-            fi
-          done
+          if ((${#formulae[@]} > 0)); then
+            placeholder='0000000000000000000000000000000000000000000000000000000000000000'
+            testable=()
+            skipped=()
+            for formula in "${formulae[@]}"; do
+              if grep -q "sha256 \"${placeholder}\"" "${tap}/Formula/${formula##*/}.rb"; then
+                skipped+=("$formula")
+              else
+                testable+=("$formula")
+              fi
+            done
 
-          if ((${#skipped[@]} > 0)); then
-            echo "Skipping placeholder formulae: ${skipped[*]}"
+            if ((${#skipped[@]} > 0)); then
+              echo "Skipping placeholder formulae: ${skipped[*]}"
+            fi
+
+            if ((${#testable[@]} == 0)); then
+              echo "No testable formula changes."
+            else
+              stable=()
+              head_only=()
+              for formula in "${testable[@]}"; do
+                if [[ "$(
+                  brew info --json=v2 "$formula" |
+                    brew ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("formulae").fetch(0).fetch("versions").fetch("stable").nil?'
+                )" == "true" ]]; then
+                  head_only+=("$formula")
+                else
+                  stable+=("$formula")
+                fi
+              done
+
+              if ((${#stable[@]} > 0)); then
+                brew install --build-from-source "${stable[@]}"
+              fi
+              if ((${#head_only[@]} > 0)); then
+                brew install --HEAD --build-from-source "${head_only[@]}"
+              fi
+              brew test "${testable[@]}"
+            fi
           fi
 
-          if ((${#testable[@]} == 0)); then
-            echo "No testable formula changes."
+          if ((${#casks[@]} == 0)); then
             exit 0
           fi
-          formulae=("${testable[@]}")
 
-          stable=()
-          head_only=()
-          for formula in "${formulae[@]}"; do
-            if [[ "$(
-              brew info --json=v2 "$formula" |
-                brew ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("formulae").fetch(0).fetch("versions").fetch("stable").nil?'
-            )" == "true" ]]; then
-              head_only+=("$formula")
-            else
-              stable+=("$formula")
-            fi
-          done
+          # Online cask audit reads Info.plist with plutil, which the Linux
+          # Homebrew container does not provide. Install the app on macOS.
+          if [[ "$RUNNER_OS" != "macOS" ]]; then
+            echo "Skipping casks on ${RUNNER_OS}: ${casks[*]}"
+            exit 0
+          fi
 
-          if ((${#stable[@]} > 0)); then
-            brew install --build-from-source "${stable[@]}"
-          fi
-          if ((${#head_only[@]} > 0)); then
-            brew install --HEAD --build-from-source "${head_only[@]}"
-          fi
-          brew test "${formulae[@]}"
+          brew audit --cask --online "${casks[@]}"
+          brew install --cask "${casks[@]}"
