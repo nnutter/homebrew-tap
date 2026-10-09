@@ -6,6 +6,11 @@ class Mdlint < Formula
   license "Unlicense"
   head "https://github.com/nnutter/mdlint.git", branch: "main"
 
+  livecheck do
+    url :stable
+    strategy :github_latest
+  end
+
   depends_on "rust" => :build
 
   def install
