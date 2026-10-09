@@ -1,5 +1,5 @@
 class Slush < Formula
-  desc "SSH/ET/mosh wrapper that starts Lemonade and reverse-tunnels its port"
+  desc "Tunnel clipboard and open calls through SSH/Mosh shell"
   homepage "https://github.com/nnutter/slush"
   url "https://api.github.com/repos/nnutter/slush/tarball/v0.3.0",
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
@@ -14,17 +14,17 @@ class Slush < Formula
   depends_on "go" => :build
 
   def install
-    system "go", "build", *std_go_args(ldflags: "-s -w")
-  end
-
-  def caveats
-    <<~EOS
-      slush requires lemonade on PATH at runtime:
-        https://github.com/lemonade-command/lemonade
-    EOS
+    ldflags = %W[-X main.version=#{version}]
+    system "go", "build", *std_go_args(ldflags:, output: bin/"slush"), "."
+    generate_completions_from_executable(bin/"slush", shell_parameter_format: :cobra)
   end
 
   test do
-    assert_match "lemonade not found on PATH", shell_output("#{bin}/slush 2>&1", 1)
+    assert_match version.to_s, shell_output("#{bin}/slush --version")
+
+    assert_match "#compdef slush", (zsh_completion/"_slush").read
+    assert_match "bash completion V2 for slush", (bash_completion/"slush").read
+    assert_match "fish completion for slush", (fish_completion/"slush.fish").read
+    assert_match "powershell completion for slush", (pwsh_completion/"_slush.ps1").read
   end
 end
