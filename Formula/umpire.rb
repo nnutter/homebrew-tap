@@ -16,13 +16,15 @@ class Umpire < Formula
   def install
     ldflags = %W[-X main.version=#{version}]
     system "go", "build", *std_go_args(ldflags:)
-    generate_completions_from_executable(bin/"umpire", shell_parameter_format: :cobra, shells: [:bash, :zsh])
+    generate_completions_from_executable(bin/"umpire", shell_parameter_format: :cobra)
   end
 
   test do
     assert_match version.to_s, shell_output("#{bin}/umpire --version")
+
     assert_match "#compdef umpire", (zsh_completion/"_umpire").read
-    assert_match "_git", (zsh_completion/"_umpire").read
-    assert_match "complete -F _git umpire", (bash_completion/"umpire").read
+    assert_match "bash completion V2 for umpire", (bash_completion/"umpire").read
+    assert_match "fish completion for umpire", (fish_completion/"umpire.fish").read
+    assert_match "powershell completion for umpire", (pwsh_completion/"_umpire.ps1").read
   end
 end
