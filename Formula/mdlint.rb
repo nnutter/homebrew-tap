@@ -4,7 +4,12 @@ class Mdlint < Formula
   url "https://github.com/nnutter/mdlint/archive/refs/tags/v0.0.0.tar.gz"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   license "Unlicense"
-  head "https://github.com/nnutter/mdlint.git", branch: "opinionated"
+  head "https://github.com/nnutter/mdlint.git", branch: "main"
+
+  livecheck do
+    url :stable
+    strategy :github_latest
+  end
 
   depends_on "rust" => :build
 
