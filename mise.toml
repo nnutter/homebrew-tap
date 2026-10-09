@@ -3,7 +3,7 @@ ruby = "4.0"
 
 [tasks.test]
 description = "Run the test suite"
-run = "ruby test/update_formula_test.rb"
+run = "ruby test/update_formula_test.rb && ruby test/update_macos_timber_test.rb"
 
 [tasks.lint]
 description = "Run style checks"
@@ -16,3 +16,7 @@ depends = ["test", "lint"]
 [tasks.update]
 description = "Update a formula from a GitHub release tag"
 run = "bin/update-formula"
+
+[tasks.update-macos-timber]
+description = "Update the macos-timber cask from a GitHub release tag"
+run = "bin/update-macos-timber"

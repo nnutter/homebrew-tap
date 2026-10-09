@@ -34,6 +34,18 @@ mise run update -- timber v0.5
 
 The commit message looks like `Updated timber to v0.5`.
 
+## Update the Timber cask
+
+Give the `macos-timber` release tag.
+The script downloads `Timber.zip`, calculates its SHA-256, updates the cask, and commits the change.
+
+```bash
+mise run update-macos-timber -- v0.5.0
+```
+
+The commit message looks like `Updated macos-timber to v0.5.0`.
+The cask `version` omits the leading `v` because its download URL adds that prefix.
+
 ## Open a pull request from an upstream repository
 
 An upstream repository can open a pull request on this tap.
