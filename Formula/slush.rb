@@ -1,9 +1,9 @@
 class Slush < Formula
   desc "SSH/ET/mosh wrapper that starts Lemonade and reverse-tunnels its port"
   homepage "https://github.com/nnutter/slush"
-  url "https://api.github.com/repos/nnutter/slush/tarball/v0.2.4",
+  url "https://api.github.com/repos/nnutter/slush/tarball/v0.3.0",
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
-  sha256 "cacd74e6e957c171c3e6d022086be53954cc858e6b9377b068e0f2c16817f74f"
+  sha256 "36743d02c6f259bec19440b14de5c48a45ef4d485f07f30cd0ade25979ef2675"
   head "ssh://git@github.com/nnutter/slush.git", branch: "main"
 
   livecheck do
