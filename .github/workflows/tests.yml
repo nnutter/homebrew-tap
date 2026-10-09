@@ -62,6 +62,27 @@ jobs:
             exit 0
           fi
 
+          placeholder='0000000000000000000000000000000000000000000000000000000000000000'
+          testable=()
+          skipped=()
+          for formula in "${formulae[@]}"; do
+            if grep -q "sha256 \"${placeholder}\"" "${tap}/Formula/${formula##*/}.rb"; then
+              skipped+=("$formula")
+            else
+              testable+=("$formula")
+            fi
+          done
+
+          if ((${#skipped[@]} > 0)); then
+            echo "Skipping placeholder formulae: ${skipped[*]}"
+          fi
+
+          if ((${#testable[@]} == 0)); then
+            echo "No testable formula changes."
+            exit 0
+          fi
+          formulae=("${testable[@]}")
+
           stable=()
           head_only=()
           for formula in "${formulae[@]}"; do
