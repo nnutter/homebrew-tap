@@ -47,7 +47,7 @@ jobs:
           git fetch --no-tags origin "$BASE_BRANCH"
           git switch --create "$BRANCH_NAME" "origin/$BASE_BRANCH"
 
-      - name: Upgrade formulas from the latest releases
+      - name: Upgrade formulas and macos-timber from the latest releases
         id: upgrade
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -91,27 +91,79 @@ jobs:
             updated+=("$repository → $latest_tag")
           done
 
+          cask_updated=false
+          cask_path="Casks/macos-timber.rb"
+          if [[ -f "$cask_path" ]]; then
+            version_line="$(grep -E '^[[:space:]]*version "' "$cask_path" | head -n 1 || true)"
+            version="${version_line#*\"}"
+            version="${version%%\"*}"
+            if [[ -z "$version" ]]; then
+              echo "Casks/macos-timber.rb has no version." >&2
+              exit 1
+            fi
+            latest_tag="$(gh api repos/nnutter/macos-timber/releases/latest --jq '.tag_name')"
+            if [[ -z "$latest_tag" ]]; then
+              echo "macos-timber has no latest release tag." >&2
+              exit 1
+            fi
+            if [[ "v${version}" != "$latest_tag" ]]; then
+              bin/update-macos-timber "$latest_tag"
+              cask_updated=true
+              updated+=("nnutter/macos-timber → $latest_tag")
+            fi
+          fi
+
           if (( ${#updated[@]} == 0 )); then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No formula upgrades were found." >> "$GITHUB_STEP_SUMMARY"
+            echo "No formula or cask upgrades were found." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          (IFS=,; echo "formulae=${formulae[*]}" >> "$GITHUB_OUTPUT")
+          title="Upgrade formulas"
+          body="Upgrade formulas for ${OWNER} repositories to their latest GitHub releases."
+          if [[ "$cask_updated" == "true" && ${#formulae[@]} -eq 0 ]]; then
+            title="Upgrade macos-timber"
+            body="Upgrade the macos-timber cask to its latest GitHub release."
+          elif [[ "$cask_updated" == "true" ]]; then
+            title="Upgrade formulas and macos-timber"
+            body="Upgrade formulas and the macos-timber cask for ${OWNER} repositories to their latest GitHub releases."
+          fi
+
           {
-            echo "### Formula upgrades"
+            echo "changed=true"
+            echo "cask=${cask_updated}"
+            echo "title=${title}"
+            echo "body=${body}"
+            if ((${#formulae[@]} > 0)); then
+              IFS=,
+              echo "formulae=${formulae[*]}"
+              unset IFS
+            fi
+          } >> "$GITHUB_OUTPUT"
+          {
+            if [[ "$cask_updated" == "true" ]]; then
+              echo "### Upgrades"
+            else
+              echo "### Formula upgrades"
+            fi
             printf -- '- %s\n' "${updated[@]}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Test formula upgrades
+      - name: Test upgrades
         if: steps.upgrade.outputs.changed == 'true'
         env:
+          TESTING_CASK: ${{ steps.upgrade.outputs.cask }}
           TESTING_FORMULAE: ${{ steps.upgrade.outputs.formulae }}
         run: |
-          IFS=',' read -r -a formulae <<< "$TESTING_FORMULAE"
-          brew install --build-from-source "${formulae[@]}"
-          brew test "${formulae[@]}"
+          if [[ -n "$TESTING_FORMULAE" ]]; then
+            IFS=',' read -r -a formulae <<< "$TESTING_FORMULAE"
+            brew install --build-from-source "${formulae[@]}"
+            brew test "${formulae[@]}"
+          fi
+          if [[ "$TESTING_CASK" == "true" ]]; then
+            brew audit --cask --online nnutter/tap/macos-timber
+            brew install --cask nnutter/tap/macos-timber
+          fi
 
       - name: Push upgrade branch
         if: steps.upgrade.outputs.changed == 'true'
@@ -123,20 +175,21 @@ jobs:
         if: steps.upgrade.outputs.changed == 'true'
         env:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
+          BODY: ${{ steps.upgrade.outputs.body }}
           BRANCH_NAME: formula-upgrades/${{ github.run_id }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: nnutter
           REPOSITORY: ${{ github.repository }}
+          TITLE: ${{ steps.upgrade.outputs.title }}
         run: |
           request_body="$(brew ruby -rjson -e '
-            base, head, owner = ARGV
+            base, head = ARGV
             puts JSON.generate(
               base: base,
               head: head,
-              title: "Upgrade formulas",
-              body: "Upgrade formulas for #{owner} repositories to their latest GitHub releases.",
+              title: ENV.fetch("TITLE"),
+              body: ENV.fetch("BODY"),
             )
-          ' -- "$BASE_BRANCH" "$BRANCH_NAME" "$OWNER")"
+          ' -- "$BASE_BRANCH" "$BRANCH_NAME")"
           pull_request_url="$(
             curl --fail-with-body --silent --show-error \
               --request POST \

@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Needed when run outside Homebrew (brew style already loads Pathname).
+require "pathname" # rubocop:disable Lint/RedundantRequireStatement
+load File.expand_path("update-formula", __dir__)
+
+# Updates the macos-timber cask from a GitHub release tag.
+module TimberCaskUpdater
+  UpdateError = FormulaReleaseUpdater::FormulaUpdateError
+
+  REPOSITORY = "nnutter/macos-timber"
+  ASSET_NAME = "Timber.zip"
+  CASK_NAME = "macos-timber"
+
+  # Release asset for one v-prefixed macos-timber tag.
+  class ReleaseAsset
+    attr_reader :url, :tag, :version
+
+    def initialize(tag)
+      tag = tag.to_s
+      raise UpdateError, "expected a release tag" if tag.empty? || tag.include?("/")
+
+      version = tag.delete_prefix("v")
+      raise UpdateError, "expected a v-prefixed release tag" if version.empty? || version == tag
+
+      @tag = tag
+      @version = version
+      @url = "https://github.com/#{REPOSITORY}/releases/download/#{tag}/#{ASSET_NAME}"
+    end
+  end
+
+  # Reads and atomically replaces the cask version and checksum.
+  class CaskFile
+    VERSION_LINE = /^(\s*version )"[^"]+"$/
+    SHA256_LINE = /^(\s*sha256 )"[0-9a-f]{64}"$/
+
+    attr_reader :path
+
+    def initialize(path)
+      @path = Pathname(path)
+    end
+
+    def package_name
+      path.basename(".rb").to_s
+    end
+
+    def update(release, sha256)
+      updated_contents = replace_single_line(contents, VERSION_LINE, release.version)
+      updated_contents = replace_single_line(updated_contents, SHA256_LINE, sha256)
+      replace_contents(updated_contents)
+    end
+
+    private
+
+    def contents
+      path.read
+    end
+
+    def replace_single_line(contents, pattern, value)
+      matches = contents.scan(pattern)
+      raise UpdateError, "#{path} must contain exactly one matching line" if matches.size != 1
+
+      contents.sub(pattern, "\\1\"#{value}\"")
+    end
+
+    def replace_contents(contents)
+      Tempfile.create([path.basename.to_s, ".tmp"], path.dirname) do |temporary_file|
+        temporary_file.write(contents)
+        temporary_file.flush
+        File.chmod(path.stat.mode, temporary_file.path)
+        File.rename(temporary_file.path, path)
+      end
+    end
+  end
+
+  # Coordinates the macos-timber cask release update.
+  class Updater
+    def initialize(
+      cask_path:,
+      downloader: FormulaReleaseUpdater::ArchiveDownloader.new,
+      committer: FormulaReleaseUpdater::FormulaCommitter.new
+    )
+      @cask_path = Pathname(cask_path)
+      @downloader = downloader
+      @committer = committer
+    end
+
+    def update(tag)
+      raise UpdateError, "cask not found: #{CASK_NAME}" unless cask_path.file?
+
+      cask = CaskFile.new(cask_path)
+      release = ReleaseAsset.new(tag)
+      cask.update(release, downloader.sha256(release.url))
+      committer.commit(cask, version: release.tag)
+      cask
+    end
+
+    private
+
+    attr_reader :cask_path, :downloader, :committer
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  begin
+    abort "usage: #{File.basename(__FILE__)} TAG" if ARGV.size != 1
+
+    TimberCaskUpdater::Updater.new(
+      cask_path: Pathname(__dir__).join("..", "Casks", "macos-timber.rb"),
+    ).update(*ARGV)
+  rescue TimberCaskUpdater::UpdateError => e
+    abort "error: #{e.message}"
+  end
+end
