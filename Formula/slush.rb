@@ -1,9 +1,9 @@
 class Slush < Formula
   desc "Tunnel clipboard and open calls through SSH/Mosh shell"
   homepage "https://github.com/nnutter/slush"
-  url "https://api.github.com/repos/nnutter/slush/tarball/v0.3.1",
+  url "https://api.github.com/repos/nnutter/slush/tarball/v0.3.2",
       user: "x-access-token:#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}"
-  sha256 "24f645b43da1301c18a58d1c58ae4bf6a34476739640d253cd477788c53c70a7"
+  sha256 "df345de73bb2fef0d1e6937af85786397e5e4f2c9f8e06c19cf88267881c52de"
   head "ssh://git@github.com/nnutter/slush.git", branch: "main"
 
   livecheck do
