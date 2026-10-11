@@ -1,8 +1,8 @@
 class Timber < Formula
   desc "Manage Git worktrees"
   homepage "https://github.com/nnutter/timber"
-  url "https://github.com/nnutter/timber/archive/refs/tags/v0.16.0.tar.gz"
-  sha256 "29c49c076cf8413378733d8c2f4d7f1e668bd87300f3f16561b9ed3a6bb5da26"
+  url "https://github.com/nnutter/timber/archive/refs/tags/v0.16.1.tar.gz"
+  sha256 "1e40161776997c86494b52edd2fb8b488129831ea1f98d0d60936c378e47ea35"
   license "MIT"
   head "https://github.com/nnutter/timber.git", branch: "master"
 
