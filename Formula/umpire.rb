@@ -1,8 +1,8 @@
 class Umpire < Formula
   desc "Review commits locally"
   homepage "https://github.com/nnutter/umpire"
-  url "https://github.com/nnutter/umpire/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "14955bc59b3b3412c3ef62cabedebc698cdb62ccd2eec2a12fc70828ee4607fe"
+  url "https://github.com/nnutter/umpire/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "785424decfaa1efc9a5f392a1a1f22dad57ce626f361188ed882fa1e0cc74176"
   license "MIT"
   head "https://github.com/nnutter/umpire.git", branch: "master"
 
