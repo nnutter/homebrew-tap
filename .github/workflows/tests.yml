@@ -55,7 +55,7 @@ jobs:
           formulae=()
           while IFS= read -r file; do
             formulae+=("nnutter/tap/$(basename "${file%.rb}")")
-          done < <(git -C "$tap" diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- Formula/)
+          done < <(git -C "$tap" diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- Formula/ ':(exclude)Formula/umpire.rb')
 
           casks=()
           while IFS= read -r file; do
