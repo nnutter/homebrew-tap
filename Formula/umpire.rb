@@ -1,30 +1,9 @@
 class Umpire < Formula
   desc "Review commits locally"
-  homepage "https://github.com/nnutter/umpire"
+  homepage "https://github.com/nnutter/git-review"
   url "https://github.com/nnutter/umpire/archive/refs/tags/v0.4.2.tar.gz"
   sha256 "9bd3f1ce97a02ad2d4d821ec9fd13e9b444a662ec6dfc310a484b41ebcfb73c6"
   license "MIT"
-  head "https://github.com/nnutter/umpire.git", branch: "master"
 
-  livecheck do
-    url :stable
-    strategy :github_latest
-  end
-
-  depends_on "go" => :build
-
-  def install
-    ldflags = %W[-X main.version=#{version}]
-    system "go", "build", *std_go_args(ldflags:)
-    generate_completions_from_executable(bin/"umpire", shell_parameter_format: :cobra)
-  end
-
-  test do
-    assert_match version.to_s, shell_output("#{bin}/umpire --version")
-
-    assert_match "#compdef umpire", (zsh_completion/"_umpire").read
-    assert_match "bash completion V2 for umpire", (bash_completion/"umpire").read
-    assert_match "fish completion for umpire", (fish_completion/"umpire.fish").read
-    assert_match "powershell completion for umpire", (pwsh_completion/"_umpire.ps1").read
-  end
+  disable! date: "2026-10-14", because: "has been renamed to git-review", replacement_formula: "git-review"
 end
