@@ -1,6 +1,6 @@
 cask "macos-timber" do
-  version "0.5.0"
-  sha256 "c7aa41ebaa34cdfede0c29ed52f86fd8b9f39fd15e50460d39168c377bf4df16"
+  version "0.5.2"
+  sha256 "0d5bd506e638e148ee01a5b9afa2820215ff42d8022fde9344c004369ad63278"
 
   url "https://github.com/nnutter/macos-timber/releases/download/v#{version}/Timber.zip"
   name "Timber"
