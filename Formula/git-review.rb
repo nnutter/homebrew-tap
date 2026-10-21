@@ -1,8 +1,8 @@
 class GitReview < Formula
   desc "Review commits locally"
   homepage "https://github.com/nnutter/git-review"
-  url "https://github.com/nnutter/git-review/archive/refs/tags/v0.7.0.tar.gz"
-  sha256 "2bdec997eca3934393624b64799f6f802e01ebe2c241217186526597b9024e73"
+  url "https://github.com/nnutter/git-review/archive/refs/tags/v0.7.1.tar.gz"
+  sha256 "529c1bafc383b539bb945bb560707bf3876948ee4a49de7618b9bbbeccf817ee"
   license "MIT"
   head "https://github.com/nnutter/git-review.git", branch: "master"
 
