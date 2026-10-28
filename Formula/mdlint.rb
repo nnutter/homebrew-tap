@@ -1,8 +1,8 @@
 class Mdlint < Formula
   desc "Opinionated Markdown formatter and linter"
   homepage "https://github.com/nnutter/mdlint"
-  url "https://github.com/nnutter/mdlint/archive/refs/tags/v0.4.1.tar.gz"
-  sha256 "65fa437344dbb685220953d887a4099660a62611001970d6e9057bd6f1a90a39"
+  url "https://github.com/nnutter/mdlint/archive/refs/tags/v0.4.2.tar.gz"
+  sha256 "44d6902bd2c3ceceae169b9baa13ebe117a3ad05480c3940bac86d90e768bc89"
   license "Unlicense"
   head "https://github.com/nnutter/mdlint.git", branch: "main"
 
