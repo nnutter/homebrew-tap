@@ -1,21 +1,50 @@
 class Timber < Formula
   desc "Manage Git worktrees"
   homepage "https://github.com/nnutter/timber"
-  url "https://github.com/nnutter/timber/archive/refs/tags/v0.22.2.tar.gz"
-  sha256 "7799f8c003f173181b5a6e4ad3cdb36317edf6dc70473477ba21581dd0dcbe9c"
   license "MIT"
-  head "https://github.com/nnutter/timber.git", branch: "master"
 
   livecheck do
-    url :stable
+    url :homepage
     strategy :github_latest
   end
 
-  depends_on "go" => :build
+  head do
+    url "https://github.com/nnutter/timber.git", branch: "master"
+    depends_on "go" => :build
+  end
+
+  on_macos do
+    on_arm do
+      url "https://github.com/nnutter/timber/releases/download/v0.22.2/timber_v0.22.2_darwin_arm64.tar.gz"
+      sha256 "d48859f40ed86aa55fe2e00c6003e4a7350bd999c1f050553c51fe3f4b928eef"
+    end
+
+    on_intel do
+      url "https://github.com/nnutter/timber/releases/download/v0.22.2/timber_v0.22.2_darwin_amd64.tar.gz"
+      sha256 "34338ffcf699a3384423757780215896e2bbf34be2d06a31b053698fd39852e4"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/nnutter/timber/releases/download/v0.22.2/timber_v0.22.2_linux_arm64.tar.gz"
+      sha256 "1d4c8bb78e8425ed7638035c23cf94ffa3b9245a6ae0b41f5092a2e5bfb4a25f"
+    end
+
+    on_intel do
+      url "https://github.com/nnutter/timber/releases/download/v0.22.2/timber_v0.22.2_linux_amd64.tar.gz"
+      sha256 "0761d0380a82c199130a25b0e189a951626be07e16c841f001928a1d64ac7331"
+    end
+  end
 
   def install
-    ldflags = %W[-X main.version=#{version}]
-    system "go", "build", *std_go_args(ldflags:)
+    if build.head?
+      ldflags = %W[-X main.version=#{version}]
+      system "go", "build", *std_go_args(ldflags:)
+    else
+      # The release archive names the binary after the archive itself.
+      bin.install Dir["*"].first => "timber"
+    end
 
     generate_completions_from_executable(bin/"timber", shell_parameter_format: :cobra)
 

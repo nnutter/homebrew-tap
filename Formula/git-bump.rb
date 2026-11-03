@@ -1,21 +1,51 @@
 class GitBump < Formula
   desc "Bump tags"
   homepage "https://github.com/nnutter/git-bump"
-  url "https://github.com/nnutter/git-bump/archive/refs/tags/v0.3.3.tar.gz"
-  sha256 "f849b1cad3bb8760545c64db5399fe9d542fca9804687e515a8b862c9f141143"
   license "MIT"
-  head "https://github.com/nnutter/git-bump.git", branch: "master"
 
   livecheck do
-    url :stable
+    url :homepage
     strategy :github_latest
   end
 
-  depends_on "go" => :build
+  head do
+    url "https://github.com/nnutter/git-bump.git", branch: "master"
+    depends_on "go" => :build
+  end
+
+  on_macos do
+    on_arm do
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_darwin_arm64.tar.gz"
+      sha256 "1e4b3ae76c276f0ddb3cace5c0e1c6187ace9e195f2a5ccae295c14266811016"
+    end
+
+    on_intel do
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_darwin_amd64.tar.gz"
+      sha256 "fcb5dde9b8a32347cac6a80497af9211a06eef5a99c6567e7c72898f55085b27"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_linux_arm64.tar.gz"
+      sha256 "c1fe9efc317b4cd90faf2aaf018f6d20e3a7e13cebb2ab5141a1d82d75162b40"
+    end
+
+    on_intel do
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_linux_amd64.tar.gz"
+      sha256 "87b3170a14694652597cedfe52fbd0185beaf4161eb220e32401bc929ad288a5"
+    end
+  end
 
   def install
-    ldflags = %W[-X main.version=#{version}]
-    system "go", "build", *std_go_args(ldflags:)
+    if build.head?
+      ldflags = %W[-X main.version=#{version}]
+      system "go", "build", *std_go_args(ldflags:)
+    else
+      # The release archive names the binary after the archive itself.
+      bin.install Dir["*"].first => "git-bump"
+    end
+
     generate_completions_from_executable(bin/"git-bump", shell_parameter_format: :cobra)
   end
 

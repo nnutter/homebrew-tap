@@ -11,6 +11,7 @@ load File.expand_path("../bin/update-formula", __dir__)
 class UpdateFormulaTest < Minitest::Test
   ARCHIVE_URL = "https://github.com/nnutter/git-wt/archive/refs/tags/v0.5.tar.gz"
   SHA256 = "a" * 64
+  RELEASE_SUFFIXES = %w[_darwin_arm64.tar.gz _darwin_amd64.tar.gz _linux_arm64.tar.gz _linux_amd64.tar.gz].freeze
 
   def test_updates_named_formula_url_and_sha256
     with_formula_directory do |formula_directory|
@@ -100,6 +101,93 @@ class UpdateFormulaTest < Minitest::Test
         'url "https://github.com/espanso/espanso/archive/refs/tags/v2.4.0.tar.gz"',
       )
       assert_equal [{ package: "espanso", version: "v2.4.0" }], committer.commits
+    end
+  end
+
+  def test_updates_every_release_asset_url_and_sha256
+    with_formula_directory do |formula_directory|
+      formula_path = formula_directory.join("timber.rb")
+      formula_path.write(release_formula("v0.21.0"))
+      committer = RecordingCommitter.new
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        release_assets:    FakeReleaseAssets.new,
+        committer:         committer,
+      )
+      updater.update("timber", "v0.22.2")
+
+      assert_equal expected_release_formula("v0.22.2"), formula_path.read
+      assert_equal [{ package: "timber", version: "v0.22.2" }], committer.commits
+    end
+  end
+
+  def test_rejects_release_asset_formula_when_an_asset_is_missing
+    with_formula_directory do |formula_directory|
+      formula_path = formula_directory.join("timber.rb")
+      formula_path.write(release_formula("v0.21.0"))
+      original_contents = formula_path.read
+      committer = RecordingCommitter.new
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        release_assets:    FakeReleaseAssets.new(missing_suffix: "_linux_arm64.tar.gz"),
+        committer:         committer,
+      )
+
+      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update("timber", "v0.22.2") }
+      assert_equal original_contents, formula_path.read
+      assert_empty committer.commits
+    end
+  end
+
+  def test_rejects_formula_with_both_archive_and_release_asset_urls
+    with_formula_directory do |formula_directory|
+      formula_path = formula_directory.join("timber.rb")
+      formula_path.write(<<~FORMULA)
+        class Timber < Formula
+          url "https://github.com/nnutter/timber/archive/refs/tags/v0.22.2.tar.gz"
+          sha256 "#{"b" * 64}"
+          url "https://github.com/nnutter/timber/releases/download/v0.22.2/timber_v0.22.2_linux_amd64.tar.gz"
+          sha256 "#{"b" * 64}"
+        end
+      FORMULA
+      original_contents = formula_path.read
+      committer = RecordingCommitter.new
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        release_assets:    FakeReleaseAssets.new,
+        committer:         committer,
+      )
+
+      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update("timber", "v0.22.2") }
+      assert_equal original_contents, formula_path.read
+      assert_empty committer.commits
+    end
+  end
+
+  def test_rejects_release_asset_url_without_platform_suffix
+    with_formula_directory do |formula_directory|
+      formula_path = formula_directory.join("timber.rb")
+      formula_path.write(<<~FORMULA)
+        class Timber < Formula
+          url "https://github.com/nnutter/timber/releases/download/v0.22.2/timber_v0.22.2.tar.gz"
+          sha256 "#{"b" * 64}"
+        end
+      FORMULA
+
+      updater = FormulaReleaseUpdater::FormulaUpdater.new(
+        formula_directory: formula_directory,
+        downloader:        FakeDownloader.new(SHA256),
+        release_assets:    FakeReleaseAssets.new,
+        committer:         RecordingCommitter.new,
+      )
+
+      assert_raises(FormulaReleaseUpdater::FormulaUpdateError) { updater.update("timber", "v0.22.2") }
     end
   end
 
@@ -220,6 +308,37 @@ class UpdateFormulaTest < Minitest::Test
     FORMULA
   end
 
+  def release_formula(tag)
+    urls = RELEASE_SUFFIXES.map do |suffix|
+      <<~STANZA.chomp
+        url "https://github.com/nnutter/timber/releases/download/#{tag}/timber_#{tag}#{suffix}"
+        sha256 "#{"b" * 64}"
+      STANZA
+    end
+
+    <<~FORMULA
+      class Timber < Formula
+        #{urls.join("\n\n  ")}
+      end
+    FORMULA
+  end
+
+  def expected_release_formula(tag)
+    urls = RELEASE_SUFFIXES.map do |suffix|
+      sha256 = (RELEASE_SUFFIXES.index(suffix) + 1).to_s * 64
+      <<~STANZA.chomp
+        url "https://github.com/nnutter/timber/releases/download/#{tag}/timber_#{tag}#{suffix}"
+        sha256 "#{sha256}"
+      STANZA
+    end
+
+    <<~FORMULA
+      class Timber < Formula
+        #{urls.join("\n\n  ")}
+      end
+    FORMULA
+  end
+
   def expected_formula
     <<~FORMULA
       class GitWt < Formula
@@ -237,6 +356,26 @@ class UpdateFormulaTest < Minitest::Test
 
     def sha256(_url)
       @sha256
+    end
+  end
+
+  # Supplies fixed release assets so tests do not access the network.
+  class FakeReleaseAssets
+    def initialize(missing_suffix: nil)
+      @missing_suffix = missing_suffix
+    end
+
+    def asset(repository, tag, suffix)
+      if suffix == @missing_suffix
+        raise FormulaReleaseUpdater::FormulaUpdateError,
+              "release #{tag} of #{repository} has no asset that ends with #{suffix}"
+      end
+
+      digest = (RELEASE_SUFFIXES.index(suffix) + 1).to_s * 64
+      FormulaReleaseUpdater::ReleaseAsset.new(
+        url:    "https://github.com/#{repository}/releases/download/#{tag}/timber_#{tag}#{suffix}",
+        sha256: digest,
+      )
     end
   end
 

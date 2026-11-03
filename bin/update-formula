@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "digest"
+require "json"
 require "net/http"
 # Needed when run outside Homebrew (brew style already loads Pathname).
 require "pathname" # rubocop:disable Lint/RedundantRequireStatement
@@ -79,10 +80,102 @@ module FormulaReleaseUpdater
     end
   end
 
+  # Names one release asset and its digest.
+  ReleaseAsset = Data.define(:url, :sha256)
+
+  # Reads release assets and their digests from the GitHub API.
+  class ReleaseAssetClient
+    CHECKSUMS = "checksums.txt"
+    MAX_REDIRECTS = 5
+    PLATFORM_SUFFIX = /_(?:linux|darwin)_(?:amd64|arm64)\.tar\.gz\z/
+
+    def initialize(github_token: ENV.fetch("HOMEBREW_GITHUB_API_TOKEN", nil))
+      @github_token = github_token
+      @asset_urls = {}
+      @digests = {}
+    end
+
+    # Returns the release asset whose name ends with the platform suffix.
+    def asset(repository_identifier, tag, suffix)
+      name = asset_urls(repository_identifier, tag).keys.find { |asset_name| asset_name.end_with?(suffix) }
+      unless name
+        raise FormulaUpdateError,
+              "release #{tag} of #{repository_identifier} has no asset that ends with #{suffix}"
+      end
+
+      sha256 = digests(repository_identifier, tag)[name]
+      unless sha256
+        raise FormulaUpdateError,
+              "release #{tag} of #{repository_identifier} has no #{CHECKSUMS} entry for #{name}"
+      end
+
+      ReleaseAsset.new(url: asset_urls(repository_identifier, tag).fetch(name), sha256: sha256)
+    end
+
+    private
+
+    def asset_urls(repository_identifier, tag)
+      @asset_urls[[repository_identifier, tag]] ||= begin
+        release = JSON.parse(fetch(release_uri(repository_identifier, tag)))
+        release.fetch("assets").to_h do |asset|
+          [asset.fetch("name"), asset.fetch("browser_download_url")]
+        end
+      end
+    end
+
+    def digests(repository_identifier, tag)
+      @digests[[repository_identifier, tag]] ||= begin
+        checksums_url = asset_urls(repository_identifier, tag).fetch(CHECKSUMS) do
+          raise FormulaUpdateError, "release #{tag} of #{repository_identifier} has no #{CHECKSUMS} asset"
+        end
+        fetch(URI(checksums_url)).lines.each_with_object({}) do |line, digests|
+          digest, name = line.split
+          digests[name] = digest if name
+        end
+      end
+    end
+
+    def release_uri(repository_identifier, tag)
+      URI("https://api.github.com/repos/#{repository_identifier}/releases/tags/#{tag}")
+    end
+
+    def fetch(uri, remaining_redirects = MAX_REDIRECTS)
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+        http.request(request_for(uri))
+      end
+      return response.body if response.is_a?(Net::HTTPSuccess)
+
+      unless response.is_a?(Net::HTTPRedirection)
+        raise FormulaUpdateError, "release request failed with HTTP #{response.code}"
+      end
+      raise FormulaUpdateError, "too many redirects while reading release data" if remaining_redirects.zero?
+
+      location = response["location"]
+      raise FormulaUpdateError, "release redirect is missing its Location header" unless location
+
+      redirect_uri = URI.join(uri, location)
+      raise FormulaUpdateError, "release redirect must use HTTPS" if redirect_uri.scheme != "https"
+
+      fetch(redirect_uri, remaining_redirects - 1)
+    rescue SocketError, SystemCallError, Timeout::Error, URI::InvalidURIError => e
+      raise FormulaUpdateError, "could not read release data: #{e.message}"
+    end
+
+    def request_for(uri)
+      request = Net::HTTP::Get.new(uri)
+      if !@github_token.to_s.empty? && %w[github.com api.github.com].include?(uri.host)
+        request["Authorization"] = "Bearer #{@github_token}"
+      end
+      request
+    end
+  end
+
   # Reads and atomically replaces stable source fields.
   class FormulaFile
     GITHUB_ARCHIVE_URL = %r{https://github\.com/([^/]+/[^/]+)/archive/refs/tags/[^"/]+\.tar\.gz}
     GITHUB_API_TARBALL_URL = %r{https://api\.github\.com/repos/([^/]+/[^/]+)/tarball/[^"/]+}
+    GITHUB_RELEASE_ASSET_URL = %r{https://github\.com/([^/]+/[^/]+)/releases/download/([^"/]+)/([^"/]+)}
+    PLATFORM_SUFFIX = /_(?:linux|darwin)_(?:amd64|arm64)\.tar\.gz\z/
     URL_LINE = /^(\s*url )"[^"]+"/
     SHA256_LINE = /^(\s*sha256 )"[0-9a-f]{64}"$/
 
@@ -107,10 +200,79 @@ module FormulaReleaseUpdater
         contents.match?(/header:\s*"Authorization:/)
     end
 
+    # Returns :archive or :release_assets, and rejects mixed or unknown sources.
+    def source_shape
+      archive = contents.match?(GITHUB_ARCHIVE_URL) || contents.match?(GITHUB_API_TARBALL_URL)
+      release_assets = contents.match?(GITHUB_RELEASE_ASSET_URL)
+      if archive && release_assets
+        raise FormulaUpdateError, "#{path} must not mix source archive URLs and release asset URLs"
+      end
+
+      return :archive if archive
+      return :release_assets if release_assets
+
+      nil
+    end
+
+    def release_asset_repository
+      matches = contents.scan(GITHUB_RELEASE_ASSET_URL).map(&:first).uniq
+      if matches.size != 1
+        raise FormulaUpdateError, "#{path} must use one GitHub repository for release assets"
+      end
+
+      matches.first
+    end
+
+    # Returns the platform suffix of every release asset URL line.
+    def release_asset_suffixes
+      suffixes = contents.lines.filter_map do |line|
+        next unless URL_LINE.match?(line)
+
+        match = GITHUB_RELEASE_ASSET_URL.match(line)
+        next unless match
+
+        suffix = match[3][PLATFORM_SUFFIX]
+        unless suffix
+          raise FormulaUpdateError, "#{path} has a release asset URL without a platform suffix: #{match[3]}"
+        end
+
+        suffix
+      end
+      raise FormulaUpdateError, "#{path} must contain at least one release asset URL" if suffixes.empty?
+
+      suffixes
+    end
+
     def update(archive, sha256)
       updated_contents = replace_single_line(contents, URL_LINE, archive.url)
       updated_contents = replace_single_line(updated_contents, SHA256_LINE, sha256)
       replace_contents(updated_contents)
+    end
+
+    # Replaces every release asset URL and the sha256 line that follows it.
+    def update_release_assets(assets)
+      lines = contents.lines
+      lines.each_with_index do |line, index|
+        next unless URL_LINE.match?(line)
+
+        match = GITHUB_RELEASE_ASSET_URL.match(line)
+        next unless match
+
+        suffix = match[3][PLATFORM_SUFFIX]
+        asset = suffix && assets[suffix]
+        unless asset
+          raise FormulaUpdateError, "#{path} has no release asset for: #{match[3]}"
+        end
+
+        sha256_index = index + 1
+        unless lines[sha256_index]&.match?(SHA256_LINE)
+          raise FormulaUpdateError, "#{path} must have a sha256 line after each release asset URL"
+        end
+
+        lines[index] = line.sub(URL_LINE, "\\1\"#{asset.url}\"")
+        lines[sha256_index] = lines[sha256_index].sub(SHA256_LINE, "\\1\"#{asset.sha256}\"")
+      end
+      replace_contents(lines.join)
     end
 
     private
@@ -161,24 +323,32 @@ module FormulaReleaseUpdater
     def initialize(
       formula_directory:,
       downloader: ArchiveDownloader.new,
+      release_assets: ReleaseAssetClient.new,
       committer: FormulaCommitter.new
     )
       @formula_directory = Pathname(formula_directory)
       @downloader = downloader
+      @release_assets = release_assets
       @committer = committer
     end
 
     def update(name, tag)
       formula = formula_named(name)
-      archive = archive_for(formula, tag)
-      formula.update(archive, downloader.sha256(archive.url))
-      committer.commit(formula, version: archive.tag)
+      case formula.source_shape
+      when :archive
+        update_archive(formula, tag)
+      when :release_assets
+        update_release_assets(formula, tag)
+      else
+        raise FormulaUpdateError, "#{formula.path} must use a GitHub tag archive URL or release asset URLs"
+      end
+      committer.commit(formula, version: tag)
       formula
     end
 
     private
 
-    attr_reader :formula_directory, :downloader, :committer
+    attr_reader :formula_directory, :downloader, :release_assets, :committer
 
     def formula_named(name)
       raise FormulaUpdateError, "expected a formula name" unless /\A[\w-]+\z/.match?(name.to_s)
@@ -187,6 +357,23 @@ module FormulaReleaseUpdater
       raise FormulaUpdateError, "formula not found: #{name}" unless path.file?
 
       FormulaFile.new(path)
+    end
+
+    def update_archive(formula, tag)
+      archive = archive_for(formula, tag)
+      formula.update(archive, downloader.sha256(archive.url))
+    end
+
+    def update_release_assets(formula, tag)
+      if tag.to_s.empty? || tag.include?("/")
+        raise FormulaUpdateError, "expected a release tag"
+      end
+
+      repository = formula.release_asset_repository
+      assets = formula.release_asset_suffixes.to_h do |suffix|
+        [suffix, release_assets.asset(repository, tag, suffix)]
+      end
+      formula.update_release_assets(assets)
     end
 
     def archive_for(formula, tag)
