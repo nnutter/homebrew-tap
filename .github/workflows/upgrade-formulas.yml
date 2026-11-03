@@ -58,33 +58,60 @@ jobs:
 
           for formula_path in Formula/*.rb; do
             formula_name="$(basename "${formula_path%.rb}")"
-            current_url="$(
+            current_url=""
+            current_tag=""
+            shape=""
+            archive_url="$(
               grep -oE \
                 'https://github\.com/[^/]+/[^/]+/archive/refs/tags/[^"]+\.tar\.gz' \
                 "$formula_path" || true
             )"
-            if [[ -n "$current_url" ]]; then
+            api_url="$(
+              grep -oE \
+                'https://api\.github\.com/repos/[^/]+/[^/]+/tarball/[^"]+' \
+                "$formula_path" || true
+            )"
+            asset_url="$(
+              grep -oE \
+                'https://github\.com/[^/]+/[^/]+/releases/download/[^"]+' \
+                "$formula_path" || true
+            )"
+            if [[ -n "$archive_url" ]]; then
+              shape="archive"
+              current_url="$archive_url"
               repository="${current_url#https://github.com/}"
               repository="${repository%%/archive/refs/tags/*}"
-            else
-              current_url="$(
-                grep -oE \
-                  'https://api\.github\.com/repos/[^/]+/[^/]+/tarball/[^"]+' \
-                  "$formula_path" || true
-              )"
-              [[ -n "$current_url" ]] || continue
+            elif [[ -n "$api_url" ]]; then
+              shape="api"
+              current_url="$api_url"
               repository="${current_url#https://api.github.com/repos/}"
               repository="${repository%%/tarball/*}"
+            elif [[ -n "$asset_url" ]]; then
+              shape="release"
+              current_url="$(printf '%s\n' "$asset_url" | head -n 1)"
+              repository="${current_url#https://github.com/}"
+              repository="${repository%%/releases/download/*}"
+              current_tag="${current_url#*/releases/download/}"
+              current_tag="${current_tag%%/*}"
+            else
+              continue
             fi
             [[ "$repository" == "$OWNER/"* ]] || continue
 
             latest_tag="$(gh api "repos/$repository/releases/latest" --jq '.tag_name')"
-            if [[ "$current_url" == https://api.github.com/* ]]; then
-              latest_url="https://api.github.com/repos/$repository/tarball/$latest_tag"
-            else
-              latest_url="https://github.com/$repository/archive/refs/tags/$latest_tag.tar.gz"
-            fi
-            [[ "$current_url" == "$latest_url" ]] && continue
+            case "$shape" in
+              api)
+                latest_url="https://api.github.com/repos/$repository/tarball/$latest_tag"
+                [[ "$current_url" == "$latest_url" ]] && continue
+                ;;
+              release)
+                [[ "$current_tag" == "$latest_tag" ]] && continue
+                ;;
+              *)
+                latest_url="https://github.com/$repository/archive/refs/tags/$latest_tag.tar.gz"
+                [[ "$current_url" == "$latest_url" ]] && continue
+                ;;
+            esac
 
             bin/update-formula "$formula_name" "$latest_tag"
             formulae+=("nnutter/tap/$formula_name")
