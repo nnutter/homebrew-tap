@@ -14,6 +14,9 @@ class Mdlint < Formula
   depends_on "rust" => :build
 
   def install
+    # The build script derives the version from Git unless this is set, and a
+    # release tarball has no repository.
+    ENV["MDLINT_RELEASE_TAG"] = "v#{version}"
     system "cargo", "install", *std_cargo_args
   end
 
