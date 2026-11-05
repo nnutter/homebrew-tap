@@ -15,25 +15,25 @@ class GitBump < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_darwin_arm64.tar.gz"
-      sha256 "1e4b3ae76c276f0ddb3cace5c0e1c6187ace9e195f2a5ccae295c14266811016"
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.5/git-bump_v0.3.5_darwin_arm64.tar.gz"
+      sha256 "d2d9937f9c8697a51a15154fe6ea48077bec09e01a34dc2bc57b7140a9737adf"
     end
 
     on_intel do
-      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_darwin_amd64.tar.gz"
-      sha256 "fcb5dde9b8a32347cac6a80497af9211a06eef5a99c6567e7c72898f55085b27"
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.5/git-bump_v0.3.5_darwin_amd64.tar.gz"
+      sha256 "a78f889d541939c35ebbc811a027cfb52b497cad0394ab74e8f732983afc14d7"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_linux_arm64.tar.gz"
-      sha256 "c1fe9efc317b4cd90faf2aaf018f6d20e3a7e13cebb2ab5141a1d82d75162b40"
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.5/git-bump_v0.3.5_linux_arm64.tar.gz"
+      sha256 "0d74ee7d472a30b1551a12d75e233611bd0ccedf6c3478e786510729d423b13e"
     end
 
     on_intel do
-      url "https://github.com/nnutter/git-bump/releases/download/v0.3.3/git-bump_v0.3.3_linux_amd64.tar.gz"
-      sha256 "87b3170a14694652597cedfe52fbd0185beaf4161eb220e32401bc929ad288a5"
+      url "https://github.com/nnutter/git-bump/releases/download/v0.3.5/git-bump_v0.3.5_linux_amd64.tar.gz"
+      sha256 "af760bd40881ab7aa78f5b940c98053e31297070da4b0e850139d15276b7df45"
     end
   end
 
