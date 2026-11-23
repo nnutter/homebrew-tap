@@ -15,25 +15,25 @@ class Roam < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/nnutter/roam/releases/download/v2.1.8/roam_v2.1.8_darwin_arm64.tar.gz"
-      sha256 "8a6604caacfd441272f3aeb4f0f1d9c7d20374cc324109d8939a43c2b4452886"
+      url "https://github.com/nnutter/roam/releases/download/v2.1.9/roam_v2.1.9_darwin_arm64.tar.gz"
+      sha256 "d39962c403a7ca415bb1faca876fda9b314c997219e67ad50b2c23fb45235f10"
     end
 
     on_intel do
-      url "https://github.com/nnutter/roam/releases/download/v2.1.8/roam_v2.1.8_darwin_amd64.tar.gz"
-      sha256 "e5c3c9ee7520e564294ebe671ee513b58c19549b0e8b8b8c7dd4dd1fb16ceddd"
+      url "https://github.com/nnutter/roam/releases/download/v2.1.9/roam_v2.1.9_darwin_amd64.tar.gz"
+      sha256 "7ce3d8dd724182f848259912a63e742b75909b3cabf6a6cd386f9abeab58250c"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/nnutter/roam/releases/download/v2.1.8/roam_v2.1.8_linux_arm64.tar.gz"
-      sha256 "f152d17a404d2d3ceb1a0f0d5d5fc25bd450741fbdcf06b135654496cbe83979"
+      url "https://github.com/nnutter/roam/releases/download/v2.1.9/roam_v2.1.9_linux_arm64.tar.gz"
+      sha256 "a033fc7d9fb0a43f99be71516348b7a8d2a388fccef5130ec3968623507b5371"
     end
 
     on_intel do
-      url "https://github.com/nnutter/roam/releases/download/v2.1.8/roam_v2.1.8_linux_amd64.tar.gz"
-      sha256 "d185c9f8fe57f86d6ae8cddc4b898e970fe8d013affc8dbc26065bb80f14f73f"
+      url "https://github.com/nnutter/roam/releases/download/v2.1.9/roam_v2.1.9_linux_amd64.tar.gz"
+      sha256 "a20f778a6ee49ec3f17feca17f32329db5ba924cf76de17dd3cf367447b5c06f"
     end
   end
 
