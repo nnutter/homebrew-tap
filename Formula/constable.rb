@@ -15,25 +15,25 @@ class Constable < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/nnutter/constable/releases/download/v0.10.1/constable_v0.10.1_darwin_arm64.tar.gz"
-      sha256 "39990012b1c17c7efa537070a497b8f759fb4440f9df40d223e360d776de392a"
+      url "https://github.com/nnutter/constable/releases/download/v0.10.2/constable_v0.10.2_darwin_arm64.tar.gz"
+      sha256 "f9b20ac4e5b2c98433f93d6287b02110688b078c102e92951fa350287f2e7ce2"
     end
 
     on_intel do
-      url "https://github.com/nnutter/constable/releases/download/v0.10.1/constable_v0.10.1_darwin_amd64.tar.gz"
-      sha256 "9ea2593ee04b1a43354cad67b1425f1e78157507289fd386e52a97790236ec02"
+      url "https://github.com/nnutter/constable/releases/download/v0.10.2/constable_v0.10.2_darwin_amd64.tar.gz"
+      sha256 "1a9d6f943ab0ea9dd773ada744c4e393342c10d50632e0be03ed9bcfb71eca9b"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/nnutter/constable/releases/download/v0.10.1/constable_v0.10.1_linux_arm64.tar.gz"
-      sha256 "c2891fd7c60dc425486673faf65e0942a9b65b2359c277eb75811758b031d531"
+      url "https://github.com/nnutter/constable/releases/download/v0.10.2/constable_v0.10.2_linux_arm64.tar.gz"
+      sha256 "ebe687ddfa281a4f9753af134feb57d9152b559de15228e60dede3f9db43c5b2"
     end
 
     on_intel do
-      url "https://github.com/nnutter/constable/releases/download/v0.10.1/constable_v0.10.1_linux_amd64.tar.gz"
-      sha256 "375733dd02b1d7033f2cac3f586c93cf7291b42c5e0f8e4792ff33f2fe525464"
+      url "https://github.com/nnutter/constable/releases/download/v0.10.2/constable_v0.10.2_linux_amd64.tar.gz"
+      sha256 "fe494130ae68dc6e863875a78f90045e1919ba99c771c8ff46dd7508cc629794"
     end
   end
 
