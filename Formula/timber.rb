@@ -15,25 +15,25 @@ class Timber < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/nnutter/timber/releases/download/v0.27.0/timber_v0.27.0_darwin_arm64.tar.gz"
-      sha256 "7946dda27d3ed969f31527441e75a899a7386217a4ed02453be17a50eb731e3c"
+      url "https://github.com/nnutter/timber/releases/download/v0.28.0/timber_v0.28.0_darwin_arm64.tar.gz"
+      sha256 "48f7306f5783a8ed3eaf322a9cb1614f3f3886822ae711e0fd0d6b7efca3fa0c"
     end
 
     on_intel do
-      url "https://github.com/nnutter/timber/releases/download/v0.27.0/timber_v0.27.0_darwin_amd64.tar.gz"
-      sha256 "ae697aa6dff262b15da309de37cbe817716669f25bdb0d19647cbb90b335553a"
+      url "https://github.com/nnutter/timber/releases/download/v0.28.0/timber_v0.28.0_darwin_amd64.tar.gz"
+      sha256 "d05be880feb9c4802b9efa2ca9f4f408b29051d0f6ff0a8b5b8c8b58c47e2561"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/nnutter/timber/releases/download/v0.27.0/timber_v0.27.0_linux_arm64.tar.gz"
-      sha256 "44dd72485b85a9a533cc722c66bff2729e7549b9d242288e607a7377adfeafc0"
+      url "https://github.com/nnutter/timber/releases/download/v0.28.0/timber_v0.28.0_linux_arm64.tar.gz"
+      sha256 "89e16276b87166d80cd6a4f476169fe1316e5782b6018896af9a5611086d3793"
     end
 
     on_intel do
-      url "https://github.com/nnutter/timber/releases/download/v0.27.0/timber_v0.27.0_linux_amd64.tar.gz"
-      sha256 "fd79c6fa7978498e3ff1d9bd07ab498ce2ccdd378509ce8b3c1012d25f24ea3c"
+      url "https://github.com/nnutter/timber/releases/download/v0.28.0/timber_v0.28.0_linux_amd64.tar.gz"
+      sha256 "dd51f5e99946439756ec3247127db6b7f92db4109467f84418094355a9e2f923"
     end
   end
 
